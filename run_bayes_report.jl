@@ -249,11 +249,32 @@ econ.breakeven_day !== nothing && vline!(pE, [econ.breakeven_day/30], lw=2, ls=:
       label=@sprintf("break-even ≈ mes %.0f", econ.breakeven_day/30))
 savefig(pE, joinpath(FIG, "6_ahorro.png"))
 
+# 6c — AHORRO DESGLOSADO POR COMPONENTE (sin costo de programa; overhead de flota va aparte)
+cfg0 = MaintenanceSim.Economics.EconConfig(hw_per_vehicle=0.0, monthly_fee=0.0)
+pol_pred = MaintenanceSim.Policy.PredictiveRUL(alarm, scv, 14, Tstar)
+sav = Dict(c => begin
+    lc = filter(pl -> pl.component == c, lives)
+    e = MaintenanceSim.Economics.run_economics(lc, MaintenanceSim.Policy.evaluate,
+            MaintenanceSim.Policy.Reactive(), pol_pred, cfg0; horizon_days=H, n_vehicles=NV)
+    e.cum_savings[end] / (H/365) / NV / 1e3        # k MXN / unidad·año
+end for c in comps_h)
+ord  = sort(comps_h, by=c -> sav[c], rev=true)
+vals = [sav[c] for c in ord]
+pB = bar(ord, vals, color=:seagreen, legend=false, xrotation=40, bottom_margin=10Plots.mm,
+         title="AHORRO POR COMPONENTE — k MXN/unidad·año (sin costo de programa)",
+         ylabel="ahorro (k MXN/unidad·año)", ylims=(0, maximum(vals)*1.12))
+for (i, c) in enumerate(ord)
+    annotate!(pB, i, vals[i] + maximum(vals)*0.03, text(@sprintf("%.0f", vals[i]), 7, :center))
+end
+savefig(pB, joinpath(FIG, "6_ahorro_por_componente.png"))
+
 annual_sav = econ.cum_savings[end] / (H/365) / NV
 @printf("  estabiliza ≈ mes %s · break-even ≈ mes %s · ahorro VPN %.1fM MXN (%.0f k MXN/unidad·año)\n",
         econ.stabilization_day===nothing ? "—" : string(round(Int,econ.stabilization_day/30)),
         econ.breakeven_day===nothing ? "—" : string(round(Int,econ.breakeven_day/30)),
         econ.cum_savings[end]/1e6, annual_sav/1e3)
-println("  → figures/6_{estabilizacion,ahorro}.png")
+println("  desglose por componente (k MXN/unidad·año): ",
+        join([@sprintf("%s=%.0f", c, sav[c]) for c in ord[1:min(4,end)]], ", "), " …")
+println("  → figures/6_{estabilizacion,ahorro,ahorro_por_componente}.png")
 
 println("\n✓ Reporte de figuras generado en figures/  ($(length(readdir(FIG))) PNG)")

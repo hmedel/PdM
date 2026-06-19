@@ -192,6 +192,24 @@ El **break-even** es el primer mes con ahorro positivo sostenido (incluye el cos
 Rojo = costo acumulado reactivo; verde = predictivo (+ programa). La brecha creciente es el ahorro. La
 **vida económica del camión** (EUAC) baja al reducir el costo de mantenimiento anual (`euac_curve`).
 
+### 7.3 Ahorro desglosado por componente
+Corriendo la economía componente-por-componente (sin el costo de programa, que es overhead de flota) se
+ve **de dónde sale el ahorro**:
+
+![ahorro por componente](../figures/6_ahorro_por_componente.png)
+
+| Componente | Ahorro (k MXN/unidad·año) | Por qué |
+|---|---|---|
+| brake_pad | ~125 | vida corta + muchas fallas + $c_f/c_p$ alto → domina (~63%) |
+| dpf | ~39 | desgaste, falla cara de escape |
+| scr | ~27 | desgaste, derate = varado |
+| oil, turbo, fuel, egr, tire… | ~0–2 c/u | vida larga → pocas fallas en el horizonte → poco que ahorrar |
+| **battery** | **0** | β≈1 (aleatoria) → **IFR rehúsa preventivo** ($T^\star=\infty$): correctamente, no se invierte |
+
+El total del desglose (~198 k/unidad·año) ≈ el agregado (~195 k) — la diferencia es el costo del programa
+(hardware+cuota). **Conclusión accionable:** el preventivo se justifica sobre todo en **balatas, DPF y SCR**;
+en battery NO (es aleatoria). Los de vida larga rendirán más ahorro con un horizonte/historial mayor.
+
 > Caveat honesto: estos montos usan β/η/costos **[estimación]** (no datos reales de flota). El valor del
 > ejercicio es el MÉTODO (cuándo estabiliza, cómo se traduce a VPN/break-even); los números absolutos se
 > recalibran cuando entre el historial real de `maintenance_records` de Tracker.
