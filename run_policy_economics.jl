@@ -52,8 +52,9 @@ function cost_curves(lives, truth)
             optimo=e_opt.cum_preventive, predictivo=e_pred.cum_preventive)
 end
 
-function panel(cc, title_)
-    p = plot(title=title_, xlabel="mes", ylabel="costo acumulado (millones MXN)", legend=:topleft)
+function panel(cc, title_; ylab::Bool=true)
+    p = plot(title=title_, xlabel="mes", legend=:topleft, left_margin=8Plots.mm, bottom_margin=5Plots.mm,
+             ylabel = ylab ? "costo acumulado (millones MXN)" : "")
     plot!(p, cc.months, cc.reactivo ./1e6,   lw=3, color=:firebrick,  label="Reactivo (run-to-failure)")
     plot!(p, cc.months, cc.fijo ./1e6,        lw=3, color=:orange,     label="Intervalo fijo (0.7·MTTF)")
     plot!(p, cc.months, cc.optimo ./1e6,      lw=3, color=:steelblue,  label="Óptimo T* (por edad)")
@@ -98,8 +99,8 @@ pEv = groupedbar(labs, hcat(fails, prevs), bar_position=:stack, xrotation=15,
 savefig(pEv, joinpath(FIG, "politicas_eventos.pdf")); savefig(pEv, joinpath(FIG, "politicas_eventos.png"))
 println("→ figures/politicas_eventos.{pdf,png}")
 
-P = plot(panel(ccN, "Flota NUEVA (de agencia, sin edad previa)"),
-         panel(ccU, "Flota USADA (con edad preexistente, ~años de uso)"),
+P = plot(panel(ccN, "Flota NUEVA (de agencia, sin edad previa)"; ylab=true),
+         panel(ccU, "Flota USADA (con edad preexistente, ~años de uso)"; ylab=false),
          layout=(1,2), size=(1500,560),
          plot_title="Costo por política de mantenimiento — 4 políticas × 2 flotas")
 savefig(P, joinpath(FIG, "politicas_economia.pdf"))
