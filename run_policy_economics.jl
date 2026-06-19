@@ -77,6 +77,27 @@ for (lab, cc) in [("NUEVA", ccN), ("USADA", ccU)]
             lab, H/365, f.react, f.fijo, f.opt, f.pred)
 end
 
+# Distribución de EVENTOS por política: fallas (en ruta, caras/peligrosas) vs reemplazos preventivos.
+function event_counts(lives, truth)
+    Tfix, Topt, pol_pred = policies(lives, truth)
+    pols = ["Reactivo"=>Pol.Reactive(), "Intervalo fijo"=>Pol.AgeReplace(Tfix),
+            "Óptimo T*"=>Pol.AgeReplace(Topt), "Predictivo CBM"=>pol_pred]
+    labs = String[]; fails = Int[]; prevs = Int[]
+    for (lab, pol) in pols
+        o = reduce(vcat, [Pol.evaluate(pl, pol) for pl in lives])
+        push!(labs, lab); push!(fails, count(x->x.kind==:failure, o)); push!(prevs, count(x->x.kind==:preventive, o))
+    end
+    labs, fails, prevs
+end
+labs, fails, prevs = event_counts(lN, tN)
+@printf("Eventos (flota nueva): %s\n", join(["$(labs[i]): $(fails[i]) fallas / $(prevs[i]) prev" for i in eachindex(labs)], " · "))
+pEv = groupedbar(labs, hcat(fails, prevs), bar_position=:stack, xrotation=15,
+    label=["Fallas (en ruta — caras/peligrosas)" "Reemplazos preventivos (taller)"],
+    color=[:firebrick :seagreen], title="Eventos por política (flota nueva) — el predictivo convierte fallas en preventivos",
+    ylabel="nº de eventos en 4 años")
+savefig(pEv, joinpath(FIG, "politicas_eventos.pdf")); savefig(pEv, joinpath(FIG, "politicas_eventos.png"))
+println("→ figures/politicas_eventos.{pdf,png}")
+
 P = plot(panel(ccN, "Flota NUEVA (de agencia, sin edad previa)"),
          panel(ccU, "Flota USADA (con edad preexistente, ~años de uso)"),
          layout=(1,2), size=(1500,560),

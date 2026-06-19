@@ -22,6 +22,7 @@ include(joinpath(ROOT, "src", "MaintenanceSim.jl")); using .MaintenanceSim
 include(joinpath(ROOT, "src", "models", "bayes.jl")); using .BayesEstimator
 const DM = MaintenanceSim.DamageModels
 const FIG = joinpath(ROOT, "figures"); mkpath(FIG)
+sf(p, name) = (savefig(p, joinpath(FIG, name*".png")); savefig(p, joinpath(FIG, name*".pdf")))  # PNG + PDF
 default(size=(820, 480), legendfontsize=8, dpi=130)
 
 # ---------- datos sintéticos (mundo run-to-failure) -----------------------------------------------
@@ -70,7 +71,7 @@ for comp in comps_main
     pσ = density(d.σ_v, lw=2, fill=(0,0.15), color=:darkgreen, label="posterior σ_v",
                  title="$(dn(comp)) — σ_v (frailty)", xlabel="σ_v")
     vline!(pσ, [0.0], lw=2, ls=:dash, color=:red, label="σ_v=0 (sin frailty)")
-    savefig(plot(pβ, pγ, pσ, layout=(1,3), size=(1350,380)), joinpath(FIG, "1_post_params_$comp.png"))
+    sf(plot(pβ, pγ, pσ, layout=(1,3), size=(1350,380)), "1_post_params_$comp")
 end
 println("  → figures/1_post_params_*.png (jerárquico: β, γ, σ_v) para: ", join(sort(collect(keys(fits))), ", "))
 
@@ -102,7 +103,7 @@ for comp in comps_main
     pF = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas flota (obs)",
                    title="$(dn(comp)) — FLOTA", xlabel="vida (h-motor)")
     density!(pF, mix, lw=3, color=:navy, label="predictiva marginal (Bayes)")
-    savefig(plot(pC, pV, pF, layout=(1,3), size=(1550,400)), joinpath(FIG, "2_dist_$comp.png"))
+    sf(plot(pC, pV, pF, layout=(1,3), size=(1550,400)), "2_dist_$comp")
 end
 println("  → figures/2_dist_*.png (componente | vehículo | flota) para: ", join(sort(collect(keys(fits))), ", "))
 
@@ -127,7 +128,7 @@ vline!(pConv, [tc.beta], lw=2, ls=:dash, color=:red, label="verdad")
 pW = plot(Ns, widths, marker=:circle, lw=2, label="ancho IC95% de β", xscale=:log10,
           title="$comp — el IC se estrecha ∝ 1/√N", xlabel="N fallas (log)", ylabel="ancho IC95%")
 plot!(pW, Ns, widths[1] .* sqrt.(Ns[1] ./ Ns), ls=:dash, color=:gray, label="referencia 1/√N")
-savefig(plot(pConv, pW, layout=(1,2), size=(1150,440)), joinpath(FIG, "3_convergencia.png"))
+sf(plot(pConv, pW, layout=(1,2), size=(1150,440)), "3_convergencia")
 println("  → figures/3_convergencia.png")
 
 # =================================================================================================
@@ -148,7 +149,7 @@ pP = density(dβ_rtf, lw=3, color=:gray, fill=(0,0.12),
 density!(pP, dβ_prev, lw=3, color=:teal, fill=(0,0.12),
          label="fallas+preventivo ($(nf_prev) fallas, resto censurado)")
 vline!(pP, [tc.beta], lw=2, ls=:dash, color=:red, label="verdad β=$(tc.beta)")
-savefig(pP, joinpath(FIG, "4_fallas_vs_preventivo.png"))
+sf(pP, "4_fallas_vs_preventivo")
 println("  → figures/4_fallas_vs_preventivo.png  (RTF $nf_rtf fallas → preventivo $nf_prev fallas)")
 
 # =================================================================================================
@@ -189,7 +190,7 @@ hpm = sum(sum(@view vl.eng_h_day[1:vl.ndays]) for vl in vehlives) /
       sum(vl.ndays for vl in vehlives) * 30          # horas-motor/mes reales (incl. días sin operar)
 ss = hpm / μ
 hline!(pM, [ss], lw=2, ls=:dash, color=:red, label=@sprintf("estado estacionario 1/MTTF≈%.2f", ss))
-savefig(pM, joinpath(FIG, "5_ecuacion_maestra_tasa.png"))
+sf(pM, "5_ecuacion_maestra_tasa")
 
 # distribución de edades de la flota en distintos tiempos → equilibrio S(a)/MTTF
 function ages_at(pls, day)
@@ -206,7 +207,7 @@ pA = plot(title="$comp — distribución de EDADES de la flota → equilibrio",
 for (day,lab,col) in [(90,"mes 3",:lightblue),(360,"año 1",:dodgerblue),(H-30,"estacionario",:navy)]
     density!(pA, ages_at(comp_pls, day), lw=2, color=col, label=lab)
 end
-savefig(pA, joinpath(FIG, "5_ecuacion_maestra_edades.png"))
+sf(pA, "5_ecuacion_maestra_edades")
 println("  → figures/5_ecuacion_maestra_{tasa,edades}.png")
 
 # =================================================================================================
@@ -239,7 +240,7 @@ plot!(pS, emonths, econ.monthly_fail_preventive, lw=2, marker=:square, ms=2, col
       label="con preventivo/predictivo")
 econ.stabilization_day !== nothing && vline!(pS, [econ.stabilization_day/30], lw=2, ls=:dash,
       color=:black, label=@sprintf("estabiliza ≈ mes %.0f", econ.stabilization_day/30))
-savefig(pS, joinpath(FIG, "6_estabilizacion.png"))
+sf(pS, "6_estabilizacion")
 
 # 6b — AHORRO ECONÓMICO: costo acumulado descontado (VPN) reactivo vs predictivo + break-even
 pE = plot(emonths, econ.cum_reactive ./ 1e6, lw=3, color=:red, label="costo acum. REACTIVO (VPN)",
@@ -248,7 +249,7 @@ plot!(pE, emonths, econ.cum_preventive ./ 1e6, lw=3, color=:green,
       label="costo acum. PREDICTIVO (+ programa)")
 econ.breakeven_day !== nothing && vline!(pE, [econ.breakeven_day/30], lw=2, ls=:dash, color=:blue,
       label=@sprintf("break-even ≈ mes %.0f", econ.breakeven_day/30))
-savefig(pE, joinpath(FIG, "6_ahorro.png"))
+sf(pE, "6_ahorro")
 
 # 6c — AHORRO DESGLOSADO POR COMPONENTE (sin costo de programa; overhead de flota va aparte)
 cfg0 = MaintenanceSim.Economics.EconConfig(hw_per_vehicle=0.0, monthly_fee=0.0)
@@ -267,7 +268,7 @@ pB = bar(dn.(ord), vals, color=:seagreen, legend=false, xrotation=40, bottom_mar
 for (i, c) in enumerate(ord)
     annotate!(pB, i, vals[i] + maximum(vals)*0.03, text(@sprintf("%.0f", vals[i]), 7, :center))
 end
-savefig(pB, joinpath(FIG, "6_ahorro_por_componente.png"))
+sf(pB, "6_ahorro_por_componente")
 
 annual_sav = econ.cum_savings[end] / (H/365) / NV
 @printf("  estabiliza ≈ mes %s · break-even ≈ mes %s · ahorro VPN %.1fM MXN (%.0f k MXN/unidad·año)\n",
