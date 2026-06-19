@@ -15,7 +15,7 @@ Alcance: camiones de carga Clase 8 y vehículos comerciales ligeros (flota mixta
 
 El mal mantenimiento de un vehículo comercial rara vez es la causa *única* de un choque, pero es un **multiplicador de riesgo** robusto y un generador casi seguro de descomposturas en ruta. El estudio de referencia mundial, el FMCSA *Large Truck Crash Causation Study* (LTCCS), atribuyó la "razón crítica" del choque al **vehículo en ~10%** de los casos (vs. ~87% al conductor); pero **dentro** de la población de camiones estudiada, los problemas de frenos aparecieron como **factor asociado en ~29%** y elevaron el riesgo relativo de chocar a **2.7×** (es decir, +170%). El corrimiento de carga, aunque poco frecuente (~4%), multiplicó el riesgo **56×**. Es decir: las fallas mecánicas no "causan el 29% de los choques" —ese es un mito— pero **casi triplican la probabilidad de chocar** cuando están presentes.
 
-Cifras ancla (USD): un choque de camión grande **sin lesión** cuesta ≈ **$49,398**; **con lesión** ≈ **$326,810**; **fatal** ≈ **$15.2 millones** (FMCSA, metodología 2025, dólares 2023). La mediana de los *nuclear verdicts* contra empresas pasó de **$21 M (2020) a $51 M (2024)** (ATRI). Una reparación de emergencia en ruta cuesta **2–3×** la misma reparación programada.
+Cifras ancla (USD): un choque de camión grande **sin lesión** cuesta ≈ **$49,398**; **con lesión** ≈ **$326,810**; **fatal** ≈ **$15.2 millones** (FMCSA, metodología 2025, dólares 2023). La mediana de los *nuclear verdicts* (>$10 M) contra transportistas alcanzó **$36 M en 2022, ~50% sobre la mediana de 2013** (ATRI). Una reparación de emergencia en ruta cuesta **2–3×** la misma reparación programada.
 
 **Conclusión de negocio:** el mantenimiento preventivo/predictivo se justifica no por el ahorro de refacciones, sino por la **reducción del costo esperado de falla**, dominado por el término de accidente y responsabilidad civil. En componentes de alta severidad (frenos, neumáticos, wheel-end), el predictivo es la inversión de mayor retorno ajustado por riesgo.
 
@@ -95,7 +95,7 @@ Estos casos ilustran las dos colas: **frenos/neumáticos por condición y manten
 
 (Fuente: FMCSA Crash Cost Methodology 2025 Update.) [no verificado en fuente primaria — confirmar tabla exacta en PDF]
 
-**Responsabilidad civil (ATRI):** mediana de *nuclear verdicts* contra empresas **$21 M (2020) → $51 M (2024)**; casos de agravio contra tractocamiones crecen ~3.7%/año (2014–2023); las primas de seguro representan **>10% del costo por milla** del transportista. (ATRI / *Operational Costs of Trucking*.)
+**Responsabilidad civil (ATRI):** mediana de *nuclear verdicts* (>$10 M) **$36 M en 2022 (~50% sobre 2013)**; el share de verdicts **>$50 M subió 6.4 puntos**; las demandas contra tractocamiones crecen **5.7%/año (2014–2023)**. (ATRI vía CCJ — verificado contra PDF; ver tabla de verificación.)
 
 **Costo de varado (c_varado):** remolque pesado **$3.50–$7.50+/milla** + arrastre a taller **$300–$600**; mano de obra móvil **$250–$400/h** (vs. **$150–$200/h** en taller); reparación de emergencia **2–3×** la programada. Costo de operación ATRI 2024 ≈ **$2.260/milla** y **$90.89/hora** (el tiempo parado se cobra contra esa tasa). [fuentes comerciales + ATRI]
 
@@ -130,7 +130,7 @@ Reactivo ≈ **$8,100/unidad-año**; preventivo ≈ **$2,025/unidad-año** → *
 
 ## 7. Conclusión para el caso de negocio
 
-El argumento financiero del mantenimiento preventivo/predictivo **no es el ahorro en refacciones** —ese es marginal— sino la **reducción del costo esperado de falla**, cuyo término dominante es $P(\text{accidente}\mid\text{falla})\cdot c_{\text{accidente}}$. Con un choque fatal valuado por FMCSA en **$15.2 M** y *nuclear verdicts* con mediana de **$51 M**, basta evitar **un** evento catastrófico cada varios años para pagar décadas de programa predictivo en toda la flota.
+El argumento financiero del mantenimiento preventivo/predictivo **no es el ahorro en refacciones** —ese es marginal— sino la **reducción del costo esperado de falla**, cuyo término dominante es $P(\text{accidente}\mid\text{falla})\cdot c_{\text{accidente}}$. Con un choque fatal valuado por FMCSA en **$15.2 M** y *nuclear verdicts* con mediana de **$36 M (2022)**, basta evitar **un** evento catastrófico cada varios años para pagar décadas de programa predictivo en toda la flota.
 
 El predictivo se justifica **especialmente en componentes de alta severidad** —frenos (RR 2.7), neumáticos (RR 2.5), wheel-end y dirección— donde la cola de costo es enorme y la falla es detectable por condición con días/semanas de anticipación. En componentes de baja severidad (batería, DPF) el caso es de **disponibilidad/costo de varado**, no de seguridad.
 
@@ -210,3 +210,31 @@ Large Trucks. (Bus y promedio CMV difieren: $48,176/$383,569/$15,460,033 y $49,2
 **Pendiente de blindar** (PDFs ya en `References/`; sin contexto para leerlos en esta sesión):
 FMCSA *LTCCS Analysis Brief* (10%/87%/3%; frenos 29% associated factor; relative risk 2.7×/2.5×/56×) y
 ATRI *Nuclear Verdicts* ($21M→$51M). Próxima sesión: leer esos 2 PDF y completar la tabla.
+
+### ✅ Verificación LTCCS y ATRI contra PDF primario (2026-06-19, sesión 2)
+
+**FMCSA LTCCS Analysis Brief** (Pub. FMCSA-RRA-07-017, jul-2007; PDF en `References/`):
+
+| Cifra | Documento | Fuente primaria | Veredicto |
+|---|---|---|---|
+| Causa crítica: conductor / vehículo / entorno | 87% / 10% / 3% | **Tabla 1** (68,000=87% / 8,000=10% / 2,000=3%, de 78,000 con causa crítica) | **CONFIRMADO** |
+| Frenos = associated factor #1 | 29% | **Tabla 2** (41,000 = 29%, el más frecuente) | **CONFIRMADO** |
+| Relative risk: frenos / llantas / cargo shift | 2.7× / 2.5× / 56.3× | **Tabla 2** (brake 2.7, tire 2.5, cargo shift 56.3) | **CONFIRMADO** |
+| "Frenos #1 en frecuencia pero RR menor que 13 factores" | sí | texto del Brief | **CONFIRMADO** |
+
+Nota fina confirmada: frenos = 170% más probable de recibir la causa crítica ⇒ RR 2.7 (el "+170%" = 2.7×).
+
+**ATRI / CCJ — *Nuclear Verdicts & Litigation Costs*** (PDF en `References/`):
+
+| Cifra (documento original decía…) | Fuente primaria dice | Veredicto |
+|---|---|---|
+| ~~mediana $21 M (2020) → $51 M (2024)~~ | **mediana nuclear verdict $36 M en 2022, ~50% sobre la mediana de 2013** | **CORREGIDO** |
+| ~~casos +3.7%/año~~ | demandas a transportistas **+5.7%/año (2014–2023)** | **CORREGIDO** |
+| (no estaba) | share de verdicts **>$50 M subió 6.4 puntos** | **AÑADIDO (confirmado)** |
+| primas +12.5% (2023) | NO aparece en este PDF (fuente secundaria) | **NO VERIFICABLE aquí** |
+
+> El "$21 M→$51 M" provenía de un reporte ATRI distinto (*Understanding the Impact of Nuclear Verdicts*),
+> no del PDF descargado. Las cifras del cuerpo del informe ya fueron corregidas a las del PDF primario.
+> **Las 6 cifras ancla del caso de negocio quedan ahora confirmadas/corregidas contra fuente primaria**
+> (FMCSA Crash Cost Tabla 3 + LTCCS Tablas 1-2 + ATRI/CCJ). Pendiente sólo: primas de seguro (+12.5%),
+> que requiere su fuente específica.
