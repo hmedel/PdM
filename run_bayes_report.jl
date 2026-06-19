@@ -55,7 +55,7 @@ println("\n[1/5] Posterior de parámetros…")
 comps1 = ["brake_pad", "dpf", "battery"]
 fits = Dict{String,Any}()
 for comp in comps1
-    bf = fit_bayes(rtf(comp); n_samples=500, n_chains=3, rng=MersenneTwister(7))
+    bf = fit_bayes(rtf(comp); n_samples=400, n_chains=3, rng=MersenneTwister(7))  # jerárquico (default)
     fits[comp] = bf
     d = posterior_draws(bf); tc = tru(comp)
     pβ = density(d.β, lw=2, fill=(0,0.15), label="posterior β",
@@ -64,9 +64,12 @@ for comp in comps1
     pγ = density(d.γ, lw=2, fill=(0,0.15), color=:purple, label="posterior γ",
                  title="$comp — posterior de γ (=−κ)", xlabel="γ (pendiente AFT)")
     vline!(pγ, [tc.gamma], lw=2, ls=:dash, color=:red, label="verdad γ=$(round(tc.gamma,digits=2))")
-    savefig(plot(pβ, pγ, layout=(1,2), size=(1100,420)), joinpath(FIG, "1_post_params_$comp.png"))
+    pσ = density(d.σ_v, lw=2, fill=(0,0.15), color=:darkgreen, label="posterior σ_v",
+                 title="$comp — σ_v (frailty residual por vehículo)", xlabel="σ_v")
+    vline!(pσ, [0.0], lw=2, ls=:dash, color=:red, label="σ_v=0 (sin frailty)")
+    savefig(plot(pβ, pγ, pσ, layout=(1,3), size=(1350,380)), joinpath(FIG, "1_post_params_$comp.png"))
 end
-println("  → figures/1_post_params_{brake_pad,dpf,battery}.png")
+println("  → figures/1_post_params_{brake_pad,dpf,battery}.png (jerárquico: β, γ, σ_v)")
 
 # =================================================================================================
 # (2) ESTIMACIÓN DE LA DISTRIBUCIÓN A 3 NIVELES (brake_pad)
@@ -113,7 +116,8 @@ pConv = plot(title="CONVERGENCIA — $comp: posterior de β al acumular fallas",
 widths = Float64[]
 for (k, nf) in enumerate(Ns)
     sub = take_until_failures(rtf(comp), nf)
-    bfk = fit_bayes(sub; n_samples=400, n_chains=2, rng=MersenneTwister(11))
+    # convergencia: el modelo AFT rápido (3 params) basta — el escalado del IC ∝1/√N es model-agnóstico
+    bfk = fit_bayes(sub; n_samples=400, n_chains=2, rng=MersenneTwister(11), vehicle_effect=false)
     dk = posterior_draws(bfk); pt = posterior_table(bfk)
     push!(widths, pt.β.hi - pt.β.lo)
     density!(pConv, dk.β, lw=2, alpha=0.8, label="N=$nf fallas")

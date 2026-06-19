@@ -57,9 +57,12 @@ $$\eta_{v}=\eta_0\,\exp(\gamma\,z_v+\sigma_v\,b_v),\qquad b_v\sim\mathcal N(0,1)
 - **Vehículo** = $\eta_v$ (su ruta $z_v$ + efecto residual $b_v$).
 - **Componente** = la forma $\beta$ y escala $\eta_0$ del componente.
 
-El posterior se obtiene por **MCMC (NUTS/HMC)**. Resultado clave en datos sintéticos: $\sigma_v\to 0$
-(IC ≈ [0.00, 0.07]) — la correlación entre vehículos la explica la **ruta** ($z$, vía $\gamma$), **no**
-un frailty. Es el mismo hallazgo del proyecto, ahora demostrado bayesianamente.
+El posterior se obtiene por **MCMC (NUTS/HMC)** con init data-driven (momentos) y priors neutros.
+Resultado en datos sintéticos: $\sigma_v$ es **pequeño** (≈0.02–0.06 según componente — brake_pad ~0.06,
+battery ~0.03): la **ruta** ($z$, vía $\gamma$) explica la **mayor parte** de la heterogeneidad entre
+vehículos, con un **pequeño frailty residual** no nulo. (Un prior estrecho lo sobre-encoge a ~0.03; el
+prior neutro revela el residual real.) Confirma el espíritu del hallazgo del proyecto —la correlación es
+sobre todo de ruta, recuperable vía $\gamma$— matizado: hay un residual por vehículo del orden de 6%.
 
 ### Recuperación de parámetros vs verdad
 ![β y γ por componente](../figures/1_post_params_brake_pad.png)

@@ -30,11 +30,11 @@ export fit_bayes, BayesFit, posterior_table, posterior_draws, predict_lifetimes
 
 # Verosimilitud Weibull-AFT jerárquica (forma cerrada, AD-friendly).
 @model function _weibull_aft_hier(t, a, d, z, vidx, nveh, mt)
-    β     ~ truncated(Normal(2.0, 1.0); lower=0.2, upper=12.0)
-    logη0 ~ Normal(log(mt), 1.5)
-    γ     ~ Normal(0.0, 1.0)
-    σ_v   ~ truncated(Normal(0.0, 0.15); lower=0.0)        # half-normal
-    b     ~ filldist(Normal(0.0, 1.0), nveh)               # efectos por vehículo (no-centrado)
+    β     ~ truncated(Normal(2.0, 2.0); lower=0.2, upper=12.0)   # prior ancho/neutro
+    logη0 ~ Normal(log(mt), 2.0)
+    γ     ~ Normal(0.0, 2.0)
+    σ_v   ~ truncated(Normal(0.0, 0.30); lower=0.0)              # half-normal neutro (el dato lo encoge)
+    b     ~ filldist(Normal(0.0, 1.0), nveh)                     # efectos por vehículo (no-centrado)
     η0 = exp(logη0)
     lp = zero(eltype(b))
     @inbounds for i in eachindex(t)
@@ -53,9 +53,9 @@ end
 # (η_v = η0·e^{γ z_v}). Rápida; es el default del reporte. La jerárquica (con b_v) se usa para mostrar
 # que σ_v→0 (la correlación viene de la ruta, no de frailty).
 @model function _weibull_aft(t, a, d, z, mt)
-    β     ~ truncated(Normal(2.0, 1.0); lower=0.2, upper=12.0)
-    logη0 ~ Normal(log(mt), 1.5)
-    γ     ~ Normal(0.0, 1.0)
+    β     ~ truncated(Normal(2.0, 2.0); lower=0.2, upper=12.0)   # prior ancho/neutro
+    logη0 ~ Normal(log(mt), 2.0)
+    γ     ~ Normal(0.0, 2.0)
     η0 = exp(logη0)
     lp = zero(typeof(β))
     @inbounds for i in eachindex(t)
@@ -66,6 +66,20 @@ end
         lp += (d[i] == 1 ? (log(β) - log(ηi) + (β - 1) * log(xt) + lSt) : lSt) - lSa
     end
     Turing.@addlogprob! lp
+end
+
+# Init data-driven por momentos (sobre las fallas): β de la varianza de log-vida (Var log T=π²/6β²),
+# γ por OLS de log(t)~z, log η0 del intercepto + corrección de Euler (E[log T]=log η − γ_E/β). Centra
+# las cadenas en la verdad SIN sesgo de un valor fijo y SIN caer en el modo espurio (γ con signo errado).
+function _moment_init(t, a, d, z)
+    idx = d .== 1
+    sum(idx) < 3 && return (2.0, log(mean(t)), 0.0)
+    tf = log.(t[idx]); zf = z[idx]
+    β0 = clamp(pi / (sqrt(6) * max(std(tf), 1e-3)), 0.5, 6.0)
+    z̄ = mean(zf); lt̄ = mean(tf); sz = sum((zf .- z̄) .^ 2)
+    γ0 = sz > 1e-6 ? clamp(sum((zf .- z̄) .* (tf .- lt̄)) / sz, -3.0, 3.0) : 0.0
+    logη0 = (lt̄ - γ0 * z̄) + 0.5772156649 / β0
+    return (β0, logη0, γ0)
 end
 
 "Resultado del ajuste bayesiano: cadena MCMC + metadatos para extraer posteriores."
@@ -86,7 +100,7 @@ route_severity, entry_age, exit_age, status). Usa NUTS (HMC). `vehicle_id` agrup
 """
 function fit_bayes(records; n_samples::Int=1000, n_chains::Int=4,
                    rng::AbstractRNG=MersenneTwister(1), accept::Float64=0.8,
-                   adtype=AutoForwardDiff(), vehicle_effect::Bool=false)
+                   adtype=AutoForwardDiff(), vehicle_effect::Bool=true)
     isempty(records) && error("fit_bayes: sin registros")
     comp = first(records).component_type
     t = Float64[max(r.exit_age, 1e-6) for r in records]
@@ -103,11 +117,11 @@ function fit_bayes(records; n_samples::Int=1000, n_chains::Int=4,
     else
         _weibull_aft(t, a, d, z, mean(t))
     end
-    # Inicialización anclada cerca de la región sensata (evita que alguna cadena quede atrapada en un
-    # modo espurio, p.ej. γ con signo invertido). Todas las cadenas arrancan aquí.
+    # Init data-driven (por momentos): centra las cadenas en la verdad sin sesgo de un valor fijo.
+    β0, logη0_0, γ0 = _moment_init(t, a, d, z)
     init = vehicle_effect ?
-        (β=2.0, logη0=log(mean(t)), γ=0.0, σ_v=0.05, b=zeros(length(vids))) :
-        (β=2.0, logη0=log(mean(t)), γ=0.0)
+        (β=β0, logη0=logη0_0, γ=γ0, σ_v=0.05, b=zeros(length(vids))) :
+        (β=β0, logη0=logη0_0, γ=γ0)
     chain = sample(rng, model, NUTS(accept; adtype=adtype), MCMCThreads(), n_samples, n_chains;
                    progress=false, chain_type=Chains, initial_params=fill(init, n_chains))
     return BayesFit(comp, chain, collect(vids), zbyv, length(t), Int(sum(d)))
