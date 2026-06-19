@@ -51,7 +51,7 @@ end
 # =================================================================================================
 # (1) POSTERIOR DE PARÁMETROS vs VERDAD — por componente
 # =================================================================================================
-println("\n[1/5] Posterior de parámetros…")
+println("\n[1/6] Posterior de parámetros…")
 comps_main = ["brake_pad", "dpf", "scr", "battery", "egr", "air_system"]
 fits = Dict{String,Any}()
 for comp in comps_main
@@ -76,7 +76,7 @@ println("  → figures/1_post_params_*.png (jerárquico: β, γ, σ_v) para: ", 
 # =================================================================================================
 # (2) ESTIMACIÓN DE LA DISTRIBUCIÓN A 3 NIVELES (componente | vehículo | flota) — por componente
 # =================================================================================================
-println("\n[2/5] Distribución a 3 niveles por componente…")
+println("\n[2/6] Distribución a 3 niveles por componente…")
 for comp in comps_main
     haskey(fits, comp) || continue
     bf = fits[comp]; tc = tru(comp)
@@ -108,7 +108,7 @@ println("  → figures/2_dist_*.png (componente | vehículo | flota) para: ", jo
 # =================================================================================================
 # (3) CONVERGENCIA: el posterior se estrecha al acumular datos
 # =================================================================================================
-println("\n[3/5] Convergencia…")
+println("\n[3/6] Convergencia…")
 comp = "brake_pad"; bf = fits[comp]; tc = tru(comp)   # secciones 3-5 usan brake_pad como ejemplar
 Ns = [20, 40, 80, 160, 320]
 pConv = plot(title="CONVERGENCIA — $comp: posterior de β al acumular fallas",
@@ -132,7 +132,7 @@ println("  → figures/3_convergencia.png")
 # =================================================================================================
 # (4) SOLO-FALLAS (run-to-failure) → FALLAS + PREVENTIVO
 # =================================================================================================
-println("\n[4/5] Fallas-solo vs fallas+preventivo…")
+println("\n[4/6] Fallas-solo vs fallas+preventivo…")
 # T* óptimo (de la verdad) para censurar el mundo preventivo
 ηrep = posterior_table(bf).η0.mean
 Tstar, _ = MaintenanceSim.Decision.optimal_age(tc.beta, ηrep, tc.cp, tc.cf)
@@ -153,7 +153,7 @@ println("  → figures/4_fallas_vs_preventivo.png  (RTF $nf_rtf fallas → preve
 # =================================================================================================
 # (5) ECUACIÓN MAESTRA: tasa de falla y distribución de edades de la flota → estado estacionario
 # =================================================================================================
-println("\n[5/5] Ecuación maestra (renovación de la flota)…")
+println("\n[5/6] Ecuación maestra (renovación de la flota)…")
 # días de falla por posición (renovaciones a lo largo del horizonte)
 function failure_days(pl)
     di=0; D0=pl.Dcum[1]; a0=pl.a0_D; ti=1; fds=Int[]
@@ -207,5 +207,53 @@ for (day,lab,col) in [(90,"mes 3",:lightblue),(360,"año 1",:dodgerblue),(H-30,"
 end
 savefig(pA, joinpath(FIG, "5_ecuacion_maestra_edades.png"))
 println("  → figures/5_ecuacion_maestra_{tasa,edades}.png")
+
+# =================================================================================================
+# (6) TIEMPO A ESTABILIDAD + AHORRO ECONÓMICO (reactivo vs predictivo, VPN)
+# =================================================================================================
+println("\n[6/6] Tiempo a estabilidad y ahorro económico…")
+comps_h = [c.name for c in DM.COMPONENTS if :heavy_truck in c.classes]
+# T* por componente desde la verdad (a la η de severidad media); battery (β=1) ⇒ Inf (sin preventivo)
+Tstar = Dict{String,Float64}()
+for c in comps_h
+    tcc = tru(c); zb = mean(r.route_severity for r in rtf(c))
+    ηf  = mean(v for (k, v) in truth.eta0 if last(k) == c) * exp(tcc.gamma * zb)
+    Tstar[c] = MaintenanceSim.Decision.optimal_age(tcc.beta, ηf, tcc.cp, tcc.cf)[1]
+end
+cbm   = [c for c in comps_h if haskey(MaintenanceSim.Precursors.PRECURSOR_INFO, c)]
+alarm = Dict(c => MaintenanceSim.Precursors.alarm_fraction(c) for c in cbm)
+scv   = Dict(c => MaintenanceSim.Precursors.sensor_cv(c) for c in cbm)
+cfg   = MaintenanceSim.Economics.EconConfig()
+econ  = MaintenanceSim.Economics.run_economics(lives, MaintenanceSim.Policy.evaluate,
+            MaintenanceSim.Policy.Reactive(),
+            MaintenanceSim.Policy.PredictiveRUL(alarm, scv, 14, Tstar), cfg;
+            horizon_days=H, n_vehicles=NV)
+emonths = econ.day_points ./ 30
+
+# 6a — TIEMPO A ESTABILIDAD: la tasa de falla de la flota se aplana
+pS = plot(emonths, econ.monthly_fail_reactive, lw=2, marker=:circle, ms=2, color=:red,
+          label="reactivo (run-to-failure)", title="TIEMPO A ESTABILIDAD — flota completa",
+          xlabel="mes", ylabel="fallas / unidad·mes")
+plot!(pS, emonths, econ.monthly_fail_preventive, lw=2, marker=:square, ms=2, color=:green,
+      label="con preventivo/predictivo")
+econ.stabilization_day !== nothing && vline!(pS, [econ.stabilization_day/30], lw=2, ls=:dash,
+      color=:black, label=@sprintf("estabiliza ≈ mes %.0f", econ.stabilization_day/30))
+savefig(pS, joinpath(FIG, "6_estabilizacion.png"))
+
+# 6b — AHORRO ECONÓMICO: costo acumulado descontado (VPN) reactivo vs predictivo + break-even
+pE = plot(emonths, econ.cum_reactive ./ 1e6, lw=3, color=:red, label="costo acum. REACTIVO (VPN)",
+          title="AHORRO ECONÓMICO — reactivo vs predictivo", xlabel="mes", ylabel="MXN (millones)")
+plot!(pE, emonths, econ.cum_preventive ./ 1e6, lw=3, color=:green,
+      label="costo acum. PREDICTIVO (+ programa)")
+econ.breakeven_day !== nothing && vline!(pE, [econ.breakeven_day/30], lw=2, ls=:dash, color=:blue,
+      label=@sprintf("break-even ≈ mes %.0f", econ.breakeven_day/30))
+savefig(pE, joinpath(FIG, "6_ahorro.png"))
+
+annual_sav = econ.cum_savings[end] / (H/365) / NV
+@printf("  estabiliza ≈ mes %s · break-even ≈ mes %s · ahorro VPN %.1fM MXN (%.0f k MXN/unidad·año)\n",
+        econ.stabilization_day===nothing ? "—" : string(round(Int,econ.stabilization_day/30)),
+        econ.breakeven_day===nothing ? "—" : string(round(Int,econ.breakeven_day/30)),
+        econ.cum_savings[end]/1e6, annual_sav/1e3)
+println("  → figures/6_{estabilizacion,ahorro}.png")
 
 println("\n✓ Reporte de figuras generado en figures/  ($(length(readdir(FIG))) PNG)")

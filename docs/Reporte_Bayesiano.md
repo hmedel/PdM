@@ -163,7 +163,42 @@ break-even y el EUAC: el régimen estacionario es donde el ahorro del preventivo
 
 ---
 
-## 7. Resumen de ecuaciones usadas
+## 7. Tiempo a estabilidad y traducción a ahorro de dinero
+
+Dos preguntas operativas: **¿cuándo se estabiliza la flota?** y **¿cuánto dinero se ahorra?**
+
+### 7.1 Tiempo a estabilidad
+La tasa de falla de la flota sube desde el transitorio (flota nueva, pocas fallas) hasta el régimen
+estacionario de renovación. `Economics._stabilization` marca el primer mes en que la tasa entra (y se
+mantiene) dentro de tolerancia de su valor final. En la corrida de referencia (60 unidades, 4 años):
+**se estabiliza ≈ mes 13** (~año 1), dominado por los componentes de vida corta (balatas).
+
+![tiempo a estabilidad](../figures/6_estabilizacion.png)
+
+Rojo = reactivo (run-to-failure) → ~1.9 fallas/unidad·mes en estado estacionario. Verde = con preventivo/
+predictivo → ~0.65. **La brecha son las fallas en ruta evitadas** — el origen del ahorro.
+
+### 7.2 Traducción a ahorro de dinero
+El costo acumulado descontado (VPN, tasa $r$) de cada política:
+$$\text{VPN}(t)=\sum_{\text{eventos } \le t} \frac{c_{\text{evento}}}{(1+r)^{t_{\text{evento}}/365}},\qquad
+\text{ahorro}(t)=\text{VPN}_{\text{reactivo}}(t)-\big[\text{VPN}_{\text{predictivo}}(t)+\text{programa}(t)\big].$$
+El **break-even** es el primer mes con ahorro positivo sostenido (incluye el costo del programa: hardware
++ cuota mensual). En la referencia: **break-even ≈ mes 1**, **ahorro VPN ≈ 46.7M MXN** a 4 años
+(~**195k MXN/unidad·año**). El correctivo en ruta cuesta ~$c_f/c_p\approx 4\times$ el preventivo en taller
+(ancla TMC/FleetNet), por eso el preventivo paga casi de inmediato.
+
+![ahorro económico](../figures/6_ahorro.png)
+
+Rojo = costo acumulado reactivo; verde = predictivo (+ programa). La brecha creciente es el ahorro. La
+**vida económica del camión** (EUAC) baja al reducir el costo de mantenimiento anual (`euac_curve`).
+
+> Caveat honesto: estos montos usan β/η/costos **[estimación]** (no datos reales de flota). El valor del
+> ejercicio es el MÉTODO (cuándo estabiliza, cómo se traduce a VPN/break-even); los números absolutos se
+> recalibran cuando entre el historial real de `maintenance_records` de Tracker.
+
+---
+
+## 8. Resumen de ecuaciones usadas
 
 | # | Ecuación | Rol | Código |
 |---|---|---|---|
@@ -175,3 +210,4 @@ break-even y el EUAC: el régimen estacionario es donde el ahorro del preventivo
 | 5 | $C(T)$, $T^\star$, regla IFR ($\beta_{lo}>1$) | decisión preventiva | `Decision` |
 | 6 | $\mathrm{RUL}(t)$ forma cerrada | cuándo intervenir | `RUL` |
 | 7 | $m(t)=F+\!\int m\,dF$; $1/\mu$; $f_A=S/\mu$ | ecuación maestra / renovación | `LifeProcess`, `Economics` |
+| 8 | $\text{VPN}(t)$, ahorro, break-even, estabilización | tiempo a estable + ahorro \$ | `Economics` |
