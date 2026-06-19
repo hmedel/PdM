@@ -52,9 +52,11 @@ end
 # (1) POSTERIOR DE PARÁMETROS vs VERDAD — por componente
 # =================================================================================================
 println("\n[1/5] Posterior de parámetros…")
-comps1 = ["brake_pad", "dpf", "battery"]
+comps_main = ["brake_pad", "dpf", "scr", "battery", "egr", "air_system"]
 fits = Dict{String,Any}()
-for comp in comps1
+for comp in comps_main
+    nfail = count(r -> r.status > 0, rtf(comp))
+    nfail < 30 && (println("  (omito $comp: solo $nfail fallas en el horizonte)"); continue)
     bf = fit_bayes(rtf(comp); n_samples=400, n_chains=3, rng=MersenneTwister(7))  # jerárquico (default)
     fits[comp] = bf
     d = posterior_draws(bf); tc = tru(comp)
@@ -69,47 +71,45 @@ for comp in comps1
     vline!(pσ, [0.0], lw=2, ls=:dash, color=:red, label="σ_v=0 (sin frailty)")
     savefig(plot(pβ, pγ, pσ, layout=(1,3), size=(1350,380)), joinpath(FIG, "1_post_params_$comp.png"))
 end
-println("  → figures/1_post_params_{brake_pad,dpf,battery}.png (jerárquico: β, γ, σ_v)")
+println("  → figures/1_post_params_*.png (jerárquico: β, γ, σ_v) para: ", join(sort(collect(keys(fits))), ", "))
 
 # =================================================================================================
-# (2) ESTIMACIÓN DE LA DISTRIBUCIÓN A 3 NIVELES (brake_pad)
+# (2) ESTIMACIÓN DE LA DISTRIBUCIÓN A 3 NIVELES (componente | vehículo | flota) — por componente
 # =================================================================================================
-println("\n[2/5] Distribución a 3 niveles…")
-comp = "brake_pad"; bf = fits[comp]; tc = tru(comp)
-obs = [r.exit_age for r in rtf(comp) if r.status > 0]
-zmean = mean(r.route_severity for r in rtf(comp))
-# nivel COMPONENTE: predictiva posterior a z medio vs muestra observada vs verdad
-pp = predict_lifetimes(bf, zmean; n=6000)
-grid = range(0, stop=quantile(obs, 0.99)*1.1, length=300)
-pC = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas observadas (fallas)",
-               title="NIVEL COMPONENTE — $comp\nestimación de la distribución de vida", xlabel="vida (horas-motor)")
-density!(pC, pp, lw=3, color=:blue, label="predictiva posterior (Bayes)")
-plot!(pC, grid, t->pdf(Weibull(tc.beta, posterior_table(bf).η0.mean*exp(tc.gamma*zmean)), t),
-      lw=2, ls=:dash, color=:red, label="Weibull verdad (a z̄)")
-savefig(pC, joinpath(FIG, "2_dist_componente.png"))
-
-# nivel VEHÍCULO: dos vehículos de severidad de ruta distinta → corrimiento AFT
-zlo, zhi = quantile([r.route_severity for r in rtf(comp)], [0.1, 0.9])
-pplo = predict_lifetimes(bf, zlo; n=6000); pphi = predict_lifetimes(bf, zhi; n=6000)
-pV = density(pplo, lw=3, color=:green, fill=(0,0.12), label=@sprintf("vehículo z=%.2f (ruta suave)", zlo),
-             title="NIVEL VEHÍCULO — $comp\npredictiva por severidad de ruta (η_v = η0·e^{γz})",
-             xlabel="vida (horas-motor)")
-density!(pV, pphi, lw=3, color=:orange, fill=(0,0.12), label=@sprintf("vehículo z=%.2f (ruta severa)", zhi))
-savefig(pV, joinpath(FIG, "2_dist_vehiculo.png"))
-
-# nivel FLOTA: mezcla marginal sobre la distribución de z de la flota vs histograma de flota
-zfleet = [r.route_severity for r in rtf(comp)]
-mix = reduce(vcat, [predict_lifetimes(bf, z; n=120) for z in zfleet[1:min(end,400)]])
-pF = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas de flota (obs)",
-               title="NIVEL FLOTA — $comp\nmarginal sobre la población de rutas", xlabel="vida (horas-motor)")
-density!(pF, mix, lw=3, color=:navy, label="predictiva marginal de flota (Bayes)")
-savefig(pF, joinpath(FIG, "2_dist_flota.png"))
-println("  → figures/2_dist_{componente,vehiculo,flota}.png")
+println("\n[2/5] Distribución a 3 niveles por componente…")
+for comp in comps_main
+    haskey(fits, comp) || continue
+    bf = fits[comp]; tc = tru(comp)
+    obs = [r.exit_age for r in rtf(comp) if r.status > 0]
+    zf  = [r.route_severity for r in rtf(comp)]
+    zmean = mean(zf); η0m = posterior_table(bf).η0.mean
+    grid = range(0, stop=quantile(obs, 0.99) * 1.1, length=300)
+    # NIVEL COMPONENTE: predictiva a z̄ vs observado vs verdad
+    pC = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas obs (fallas)",
+                   title="$comp — COMPONENTE", xlabel="vida (h-motor)")
+    density!(pC, predict_lifetimes(bf, zmean; n=6000), lw=3, color=:blue, label="predictiva (Bayes)")
+    plot!(pC, grid, t->pdf(Weibull(tc.beta, η0m * exp(tc.gamma * zmean)), t),
+          lw=2, ls=:dash, color=:red, label="Weibull verdad")
+    # NIVEL VEHÍCULO: corrimiento AFT por severidad de ruta (η_v = η0·e^{γz})
+    zlo, zhi = quantile(zf, [0.1, 0.9])
+    pV = density(predict_lifetimes(bf, zlo; n=6000), lw=3, color=:green, fill=(0,0.12),
+                 label=@sprintf("z=%.2f (ruta suave)", zlo), title="$comp — VEHÍCULO", xlabel="vida (h-motor)")
+    density!(pV, predict_lifetimes(bf, zhi; n=6000), lw=3, color=:orange, fill=(0,0.12),
+             label=@sprintf("z=%.2f (ruta severa)", zhi))
+    # NIVEL FLOTA: mezcla marginal sobre la población de rutas vs histograma de flota
+    mix = reduce(vcat, [predict_lifetimes(bf, z; n=120) for z in zf[1:min(end,400)]])
+    pF = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas flota (obs)",
+                   title="$comp — FLOTA (marginal)", xlabel="vida (h-motor)")
+    density!(pF, mix, lw=3, color=:navy, label="predictiva marginal (Bayes)")
+    savefig(plot(pC, pV, pF, layout=(1,3), size=(1550,400)), joinpath(FIG, "2_dist_$comp.png"))
+end
+println("  → figures/2_dist_*.png (componente | vehículo | flota) para: ", join(sort(collect(keys(fits))), ", "))
 
 # =================================================================================================
 # (3) CONVERGENCIA: el posterior se estrecha al acumular datos
 # =================================================================================================
 println("\n[3/5] Convergencia…")
+comp = "brake_pad"; bf = fits[comp]; tc = tru(comp)   # secciones 3-5 usan brake_pad como ejemplar
 Ns = [20, 40, 80, 160, 320]
 pConv = plot(title="CONVERGENCIA — $comp: posterior de β al acumular fallas",
              xlabel="β", ylabel="densidad")

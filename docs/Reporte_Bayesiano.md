@@ -80,13 +80,22 @@ La **predictiva posterior** mezcla la incertidumbre de parámetros + la aleatori
 
 $$p(\tilde t\mid \text{datos},z)=\int \text{Weibull}\big(\tilde t\mid\beta,\eta_0 e^{\gamma z}\big)\,p(\beta,\eta_0,\gamma\mid\text{datos})\,d\theta.$$
 
-| Nivel | Qué es | Figura |
-|---|---|---|
-| **Componente** | distribución de vida del componente a severidad media $\bar z$ | ![](../figures/2_dist_componente.png) |
-| **Vehículo** | corrimiento AFT: ruta suave (η grande) vs severa (η chica) | ![](../figures/2_dist_vehiculo.png) |
-| **Flota** | marginal sobre la población de rutas (mezcla) | ![](../figures/2_dist_flota.png) |
+Cada figura `2_dist_<componente>.png` tiene tres paneles:
+- **Componente**: distribución de vida a severidad media $\bar z$ (predictiva azul vs observado gris vs Weibull verdad rojo).
+- **Vehículo**: corrimiento AFT — ruta suave ($\eta$ grande, vida larga) vs severa ($\eta$ chica, vida corta).
+- **Flota**: marginal sobre la población de rutas (mezcla de las predictivas por vehículo).
 
-La predictiva (azul) se ajusta al histograma observado (gris) y a la Weibull verdadera (rojo punteado).
+Se generan para varios componentes (β diverso): brake_pad (β≈2.3), dpf (≈2.0), scr (≈2.6), egr (≈1.8),
+air_system (≈1.7), battery (≈1.0). Ejemplos:
+
+**brake_pad** (desgaste marcado): ![](../figures/2_dist_brake_pad.png)
+**scr** (desgaste, β alto): ![](../figures/2_dist_scr.png)
+**battery** (β≈1, casi aleatoria): ![](../figures/2_dist_battery.png)
+**egr**: ![](../figures/2_dist_egr.png)
+
+La predictiva (azul) se ajusta al histograma observado (gris) y a la Weibull verdadera (rojo punteado)
+en todos los niveles. El nivel **vehículo** muestra cuánto cambia la vida esperada por la severidad de la
+ruta; el nivel **flota** es la mezcla que ve la operación agregada.
 
 ---
 
