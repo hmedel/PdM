@@ -169,3 +169,28 @@ Para la flota mixta en México, donde la antigüedad del parque sugiere incidenc
 - **Casos NTSB (I-70 Colorado, AEB):** confirmar causa probable formal en el reporte/docket NTSB; algunos detalles provienen de cobertura periodística.
 - **Reducciones % por predictivo (35–62%, 75–85% predecible):** **fuentes comerciales, no peer-reviewed**; tratar como estimación a validar con piloto interno.
 - **Aplicabilidad a México:** la afirmación de incidencia "igual o peor" es **[estimación]** basada en antigüedad de flota, no en estadística mexicana verificada (INEGI/SICT no consultados en esta sesión).
+
+---
+
+## Estado de verificación contra fuentes primarias (2026-06-19)
+
+Se **habilitó WebFetch** e intentó la verificación byte-a-byte de las cifras ancla contra fuentes
+primarias. Resultado: **no fue posible en este entorno** — las fuentes autoritativas bloquean el fetcher:
+- `fmcsa.dot.gov`, `nhtsa.dot.gov` → **HTTP 403 Forbidden** (anti-bot).
+- Sitios de industria (p. ej. `ccjdigital.com`) → **HTTP 403**.
+- `web.archive.org` (Wayback) → **bloqueado por el entorno**.
+- Solo `WebSearch` (fragmentos) responde, lo cual NO satisface el estándar de verificación primaria.
+
+**Por tanto, las cifras de este informe siguen siendo de corroboración por búsqueda (varios resúmenes
+que citan la URL primaria), NO confirmadas carácter-a-carácter contra el PDF.** Se mantienen las marcas
+`[no verificado en fuente primaria]` / `[estimación]`.
+
+Aclaraciones de marco confirmadas (no requieren fetch): los múltiplos 2.7× / 2.5× / 56× son **relative
+risk ratios** (no "odds ratios"); el ~87% es la participación del conductor en la *causa crítica* para
+camiones (LTCCS), distinta de un ~88% en todos los choques.
+
+**Ruta para blindar (pendiente, requiere acción humana o herramienta autenticada):** descargar en un
+navegador los 3 PDF clave y fijar las tablas exactas — (1) FMCSA *Crash Cost Methodology 2025 Update*
+(costos $49,398 / $326,810 / $15,230,414), (2) FMCSA *LTCCS Analysis Brief* (10% / 29% / relative risk),
+(3) ATRI *Understanding the Impact of Nuclear Verdicts* (mediana $21M→$51M). Alternativa: habilitar un
+fetch autenticado/MCP que no reciba 403.
