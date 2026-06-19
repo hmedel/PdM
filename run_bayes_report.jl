@@ -31,6 +31,7 @@ lives, truth, vehlives = MaintenanceSim.LifeProcess.generate_life_processes(
 allrecs = reduce(vcat, [MaintenanceSim.Policy.life_records(pl) for pl in lives])
 rtf(comp) = filter(r -> r.component_type == comp, allrecs)
 tru(comp) = truth.comp[comp]
+dn(c) = MaintenanceSim.Analytics.display_name(c)   # nombre físico del componente para etiquetas
 println("Datos: $NV vehículos · $H días · $(length(allrecs)) registros")
 
 # censura preventiva: una falla con vida > T* se habría reemplazado preventivamente (censura en T*)
@@ -61,13 +62,13 @@ for comp in comps_main
     fits[comp] = bf
     d = posterior_draws(bf); tc = tru(comp)
     pβ = density(d.β, lw=2, fill=(0,0.15), label="posterior β",
-                 title="$comp — posterior de β", xlabel="β (forma Weibull)")
+                 title="$(dn(comp)) — β", xlabel="β (forma Weibull)")
     vline!(pβ, [tc.beta], lw=2, ls=:dash, color=:red, label="verdad β=$(tc.beta)")
     pγ = density(d.γ, lw=2, fill=(0,0.15), color=:purple, label="posterior γ",
-                 title="$comp — posterior de γ (=−κ)", xlabel="γ (pendiente AFT)")
+                 title="$(dn(comp)) — γ (=−κ)", xlabel="γ (pendiente AFT)")
     vline!(pγ, [tc.gamma], lw=2, ls=:dash, color=:red, label="verdad γ=$(round(tc.gamma,digits=2))")
     pσ = density(d.σ_v, lw=2, fill=(0,0.15), color=:darkgreen, label="posterior σ_v",
-                 title="$comp — σ_v (frailty residual por vehículo)", xlabel="σ_v")
+                 title="$(dn(comp)) — σ_v (frailty)", xlabel="σ_v")
     vline!(pσ, [0.0], lw=2, ls=:dash, color=:red, label="σ_v=0 (sin frailty)")
     savefig(plot(pβ, pγ, pσ, layout=(1,3), size=(1350,380)), joinpath(FIG, "1_post_params_$comp.png"))
 end
@@ -86,20 +87,20 @@ for comp in comps_main
     grid = range(0, stop=quantile(obs, 0.99) * 1.1, length=300)
     # NIVEL COMPONENTE: predictiva a z̄ vs observado vs verdad
     pC = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas obs (fallas)",
-                   title="$comp — COMPONENTE", xlabel="vida (h-motor)")
+                   title="$(dn(comp)) — COMPONENTE", xlabel="vida (h-motor)")
     density!(pC, predict_lifetimes(bf, zmean; n=6000), lw=3, color=:blue, label="predictiva (Bayes)")
     plot!(pC, grid, t->pdf(Weibull(tc.beta, η0m * exp(tc.gamma * zmean)), t),
           lw=2, ls=:dash, color=:red, label="Weibull verdad")
     # NIVEL VEHÍCULO: corrimiento AFT por severidad de ruta (η_v = η0·e^{γz})
     zlo, zhi = quantile(zf, [0.1, 0.9])
     pV = density(predict_lifetimes(bf, zlo; n=6000), lw=3, color=:green, fill=(0,0.12),
-                 label=@sprintf("z=%.2f (ruta suave)", zlo), title="$comp — VEHÍCULO", xlabel="vida (h-motor)")
+                 label=@sprintf("z=%.2f (ruta suave)", zlo), title="$(dn(comp)) — VEHÍCULO", xlabel="vida (h-motor)")
     density!(pV, predict_lifetimes(bf, zhi; n=6000), lw=3, color=:orange, fill=(0,0.12),
              label=@sprintf("z=%.2f (ruta severa)", zhi))
     # NIVEL FLOTA: mezcla marginal sobre la población de rutas vs histograma de flota
     mix = reduce(vcat, [predict_lifetimes(bf, z; n=120) for z in zf[1:min(end,400)]])
     pF = histogram(obs, normalize=:pdf, alpha=0.35, color=:gray, label="vidas flota (obs)",
-                   title="$comp — FLOTA (marginal)", xlabel="vida (h-motor)")
+                   title="$(dn(comp)) — FLOTA", xlabel="vida (h-motor)")
     density!(pF, mix, lw=3, color=:navy, label="predictiva marginal (Bayes)")
     savefig(plot(pC, pV, pF, layout=(1,3), size=(1550,400)), joinpath(FIG, "2_dist_$comp.png"))
 end
@@ -260,7 +261,7 @@ sav = Dict(c => begin
 end for c in comps_h)
 ord  = sort(comps_h, by=c -> sav[c], rev=true)
 vals = [sav[c] for c in ord]
-pB = bar(ord, vals, color=:seagreen, legend=false, xrotation=40, bottom_margin=10Plots.mm,
+pB = bar(dn.(ord), vals, color=:seagreen, legend=false, xrotation=40, bottom_margin=10Plots.mm,
          title="AHORRO POR COMPONENTE — k MXN/unidad·año (sin costo de programa)",
          ylabel="ahorro (k MXN/unidad·año)", ylims=(0, maximum(vals)*1.12))
 for (i, c) in enumerate(ord)

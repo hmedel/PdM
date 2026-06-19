@@ -26,7 +26,26 @@ using Distributions, Statistics, Random
 using ..Survival, ..RUL, ..Decision, ..Precursors, ..Economics, ..Policy, ..DamageModels, ..LifeProcess
 
 export ParamDraws, from_grouped, distribution_estimate, parameter_summary, master_equation,
-       economics_summary, Alert, component_alerts, vehicle_alerts, fleet_alerts
+       economics_summary, Alert, component_alerts, vehicle_alerts, fleet_alerts,
+       COMPONENT_NAMES, display_name
+
+"Nombre físico (legible) de cada clave de componente — para etiquetas de gráficas y reportes."
+const COMPONENT_NAMES = Dict(
+    "brake_pad"   => "Balatas de freno",
+    "dpf"         => "Filtro de partículas (DPF)",
+    "scr"         => "Catalizador SCR (NOx)",
+    "battery"     => "Batería",
+    "cooling"     => "Sistema de enfriamiento",
+    "turbo"       => "Turbocompresor",
+    "egr"         => "Válvula/enfriador EGR",
+    "fuel_system" => "Sistema de combustible",
+    "oil"         => "Aceite / desgaste de motor",
+    "air_system"  => "Sistema neumático (frenos)",
+    "tire"        => "Neumáticos",
+    "wheel_end"   => "Rodamiento de cubo",
+)
+"Nombre físico legible (cae a la clave si no está mapeada)."
+display_name(c::AbstractString) = get(COMPONENT_NAMES, c, c)
 
 # ============================================================================
 # Draws de parámetros (fuente-agnóstica: bayesiano o frecuentista)
