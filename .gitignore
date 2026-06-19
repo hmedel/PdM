@@ -1,0 +1,23 @@
+# Datos generados por los scripts (telemetría, eventos WS-A, rutas) — reproducibles
+/out/
+
+# Artefactos de compilación (PackageCompiler / create_app / sysimage)
+/build/
+
+# macOS
+.DS_Store
+
+# Julia
+LocalPreferences.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+/docs/build/
+
+# Backups temporales del refactor
+/.pkg_backup/
+
+# Editores
+*~
+\#*\#
+.\#*

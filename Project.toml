@@ -1,0 +1,21 @@
+name = "MaintenanceSim"
+authors = ["Tracker — Módulo de Mantenimiento Predictivo"]
+version = "0.1.0"
+
+# Entorno reproducible del módulo de mantenimiento predictivo (F0: simulador + algoritmo).
+# Stack alineado al Brief §9: Julia para modelado/generador. Survival.jl se evita a propósito
+# (el ajuste se implementa con Optim sobre la verosimilitud validada en synth_pipeline_demo.py).
+# La carga a Postgres se hace por migraciones .sql + psql (no LibPQ) para acercarse a Tracker real.
+
+# Solo paquetes registrados van en [deps]; los stdlibs (Random, Statistics, Printf, Dates,
+# Test) están disponibles sin listarse. Así `Pkg.instantiate()` resuelve limpio en Julia 1.10+.
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+
+[compat]
+julia = "1.10"

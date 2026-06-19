@@ -1,0 +1,761 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\geometry{left=3.0cm,right=3.0cm,top=3.0cm,bottom=2.8cm}
+
+\definecolor{ink}{RGB}{18,18,18}
+\definecolor{primary}{RGB}{10,50,100}
+\definecolor{rule}{RGB}{10,50,100}
+\definecolor{muted}{RGB}{100,108,120}
+\definecolor{light}{RGB}{246,248,251}
+\definecolor{accent}{RGB}{180,20,30}
+\definecolor{rowalt}{RGB}{240,244,250}
+\definecolor{greenlight}{RGB}{240,253,244}
+\definecolor{greenborder}{RGB}{22,101,52}
+
+\hypersetup{colorlinks=true,linkcolor=primary,urlcolor=primary,pdfborder={0 0 0}}
+
+\titleformat{\section}
+  {\large\bfseries\color{primary}}{}{0em}{}
+  [\vspace{2pt}{\color{rule}\rule{\linewidth}{0.5pt}}]
+\titlespacing{\section}{0pt}{1.6em}{0.6em}
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{ink}}{}{0em}{}
+\titlespacing{\subsection}{0pt}{0.9em}{0.2em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{muted}Confidencial}
+\fancyhead[R]{\small\color{muted}Mantenimiento Predictivo de Flota --- Fundamentos}
+\fancyfoot[C]{\small\color{muted}\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\tcbuselibrary{skins,breakable}
+
+\newtcolorbox{concepto}{
+  colback=light, colframe=primary, boxrule=0.6pt,
+  arc=2pt, left=8pt, right=8pt, top=5pt, bottom=5pt,
+  breakable, fontupper=\small}
+
+\newtcolorbox{resultado}{
+  colback=white, colframe=primary, boxrule=0pt,
+  leftrule=3pt, arc=0pt,
+  left=8pt, right=4pt, top=4pt, bottom=4pt,
+  breakable, fontupper=\small\color{ink}}
+
+\newtcolorbox{critico}{
+  colback=white, colframe=accent, boxrule=0pt,
+  leftrule=3pt, arc=0pt,
+  left=8pt, right=4pt, top=4pt, bottom=4pt,
+  breakable, fontupper=\small\color{ink}}
+
+\newtcolorbox{ahorro}{
+  colback=greenlight, colframe=greenborder, boxrule=0.6pt,
+  arc=2pt, left=8pt, right=8pt, top=5pt, bottom=5pt,
+  breakable, fontupper=\small\color{ink}}
+
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0em}
+\renewcommand{\arraystretch}{1.3}
+
+\setlist[itemize]{nosep, topsep=3pt, leftmargin=1.5em,
+  label={\color{primary}\textbullet}}
+\setlist[enumerate]{nosep, topsep=3pt, leftmargin=1.8em}
+
+\begin{document}
+
+%--- PORTADA ------------------------------------------------------------------
+\thispagestyle{empty}
+
+\vspace*{1.4cm}
+
+{\color{muted}\small CONFIDENCIAL \quad|\quad Junio 2026}
+
+\vspace{0.7cm}
+
+{\fontsize{28}{33}\selectfont\bfseries\color{primary}
+Mantenimiento Predictivo\\de Flota Vehicular}
+
+\vspace{0.4cm}
+
+{\fontsize{14}{18}\selectfont\color{ink}
+Fundamentos matematicos, fisica de falla\\
+y arquitectura de estimacion online}
+
+\vspace{0.3cm}
+
+{\color{rule}\rule{\linewidth}{0.8pt}}
+
+\vspace{0.5cm}
+
+{\color{muted}\normalsize
+Este documento describe el marco cientifico del modulo de mantenimiento
+que estamos construyendo: que matematicas usamos, por que son las correctas,
+en que condiciones de datos opera el sistema desde el primer dia,
+y que ahorro concreto y cuantificable produce su adopcion.
+No es una propuesta comercial. Es la fisica del problema.}
+
+\vspace{2.2cm}
+
+\begin{tabular}{@{}p{0.55\linewidth}p{0.4\linewidth}@{}}
+\small\color{muted}\textbf{I.} \color{ink} El problema y la asimetria de costos
+  & \small\color{muted}\textbf{VI.} \color{ink} Estimacion online en regimen de streaming \\[3pt]
+\small\color{muted}\textbf{II.} \color{ink} Confiabilidad y vida util remanente
+  & \small\color{muted}\textbf{VII.} \color{ink} Marco jerarquico bayesiano \\[3pt]
+\small\color{muted}\textbf{III.} \color{ink} Fisica de falla por componente
+  & \small\color{muted}\textbf{VIII.} \color{ink} Cuantificacion del ahorro \\[3pt]
+\small\color{muted}\textbf{IV.} \color{ink} Inferencia con censura y covariables
+  & \small\color{muted}\textbf{IX.} \color{ink} Por que este enfoque domina \\[3pt]
+\small\color{muted}\textbf{V.} \color{ink} Procesos de degradacion y RUL
+  & \\[3pt]
+\end{tabular}
+
+\vspace{2.5cm}
+
+\begin{concepto}
+\textbf{El hilo conductor.}
+Una pieza es un sistema fisico cuyo estado se degrada; la falla es el cruce
+de un umbral. Todo lo demas ---estadistica de vida, fisica de desgaste,
+decision optima--- son tres lentes sobre ese mismo hecho. Las tres lentes
+convergen en un solo motor de inferencia que corre en streaming, se alimenta
+de reparaciones reales y entrega distribuciones de vida residual con
+incertidumbre cuantificada.
+\end{concepto}
+
+\newpage
+
+%=============================================================================
+\section{El problema y la asimetria de costos}
+%=============================================================================
+
+El mantenimiento de flota se gestiona hoy con calendarios fijos. Esa
+estrategia tiene dos modos de falla simetricos en la descripcion pero
+radicalmente asimetricos en el costo:
+
+\begin{itemize}
+  \item \textbf{Intervenir antes de tiempo.} Material con vida util restante
+    descartado. Costo directo: refaccion, mano de obra, tiempo en taller.
+  \item \textbf{Intervenir tarde.} Falla en ruta. Costo multiplicado:
+    remolque, downtime no planeado, dano en cadena a componentes adyacentes,
+    exposicion regulatoria, carga de trabajo de taller en emergencia.
+\end{itemize}
+
+En autotransporte federal mexicano, el costo de una averia en ruta ---
+remolque, tiempo muerto, costo de oportunidad del vehiculo y del conductor---
+es tipicamente 5 a 20 veces el costo de un servicio preventivo programado.
+Esta asimetria es el motor que justifica toda la matematica que sigue.
+La metrica correcta de cualquier modelo no es exactitud predictiva;
+es \textbf{costo monetario esperado}.
+
+\begin{critico}
+\textbf{El error que invalida a la mayoria de los sistemas existentes.}
+En una flota viva, la mayoria de las piezas no ha fallado al momento de
+observarlas: solo sabemos que su vida $T_i > t_i$ (su edad actual). Esto
+es censura por la derecha, y es la regla, no la excepcion. Ignorarla
+---por ejemplo, promediar solo las piezas que fallaron--- sesga la
+estimacion hacia vidas cortas de forma grosera y produce alertas incorrectas.
+La verosimilitud correcta se construye con censura desde el primer dia.
+\end{critico}
+
+%=============================================================================
+\section{Confiabilidad y vida util remanente}
+%=============================================================================
+
+\subsection{La funcion de riesgo: el objeto central}
+
+Sea $T \geq 0$ el tiempo (o km, u horas-motor) hasta la falla de un
+componente. Definimos la \textbf{funcion de riesgo instantanea}:
+
+$$h(t) = \lim_{\Delta t \to 0}
+  \frac{P(t < T \leq t+\Delta t \mid T > t)}{\Delta t}
+  = \frac{f(t)}{R(t)} = -\frac{d}{dt}\ln R(t).$$
+
+Integrar $h$ da toda la distribucion de vida:
+
+$$\boxed{R(t) = \exp\!\left(-\int_0^t h(u)\,du\right).}$$
+
+Especificar $h(t)$ equivale a especificar el modelo completo.
+La forma de $h(t)$ tiene fisica adentro: decrece durante mortalidad
+infantil, es constante para fallas aleatorias, y \textbf{crece} durante
+el desgaste. El regimen creciente es exactamente el que el mantenimiento
+predictivo debe anticipar.
+
+\subsection{Weibull: consecuencia del teorema de valores extremos}
+
+Weibull no es una eleccion de conveniencia. Se deriva del
+\textbf{teorema de Fisher--Tippett--Gnedenko} para distribuciones de minimos.
+Un componente real es una coleccion de $N$ eslabones (granos, asperezas,
+volumenes elementales). Falla cuando el mas debil falla:
+$T = \min(X_1, \dots, X_N)$.
+Si la cola izquierda de cada eslabon es ley de potencia,
+$F_X(t) \approx (t/t_0)^\beta$ para $t \to 0^+$:
+
+$$R_T(t) = [1-(t/t_0)^\beta]^N
+  \xrightarrow{N \gg 1}
+  \exp\!\left[-\left(\frac{t}{\eta}\right)^\beta\right], \quad
+  \eta = t_0\,N^{-1/\beta}.$$
+
+El \textbf{parametro de forma} $\beta$ selecciona el regimen:
+$\beta < 1$ (mortalidad infantil), $\beta = 1$ (exponencial, sin memoria),
+$\beta > 1$ (desgaste; mecanica tipica $\beta \in [1.5,\,4]$).
+Consecuencia directa: el efecto de escala $\eta \propto N^{-1/\beta}$
+predice que piezas mas grandes son mas debiles, resultado verificado en
+materiales y en la literatura tribologica.
+
+\subsection{Vida util remanente: la forma cerrada}
+
+Lo que el operador quiere saber es cuanto le queda a la pieza que
+ya sobrevivio hasta la edad $t$. Por integracion por partes:
+
+$$\mathrm{RUL}(t) = \mathbb{E}[T - t \mid T > t]
+  = \frac{\displaystyle\int_t^{\infty} R(u)\,du}{R(t)}.$$
+
+Para Weibull con parametros $(\beta,\eta)$, esto tiene forma cerrada:
+
+$$\mathrm{RUL}(t) = \eta\,e^{(t/\eta)^{\beta}}
+  \,\Gamma\!\left(1+\tfrac{1}{\beta},\;(t/\eta)^{\beta}\right) - t,$$
+
+donde $\Gamma(a,x) = \int_x^\infty w^{a-1}e^{-w}\,dw$ es la gamma incompleta
+superior. Para $\beta > 1$, la RUL decrece estrictamente con la edad: la
+pieza vieja tiene menos vida esperada que una nueva. La intervencion se
+programa cuando $R(t)$ cae a un nivel objetivo, con un buffer conservador
+proporcional a la incertidumbre del estimado.
+
+%=============================================================================
+\section{Fisica de falla por componente}
+%=============================================================================
+
+La estadistica dice \emph{cuando} falla. La fisica dice \emph{como},
+permite construir predictores fisicamente fundamentados, y es lo que
+permite generalizar a marcas nuevas sin datos historicos propios.
+
+\subsection{Frenos --- ley de Archard desde el contacto de asperezas}
+
+Dos superficies reales se tocan solo en las cimas de sus rugosidades. Bajo
+carga $W$, las asperezas se deforman plasticamente hasta que la presion
+de contacto iguala la dureza $H$ del material. El area real de contacto es
+$A_r = W/H$, independiente del area aparente (Bowden--Tabor). Al deslizar,
+cada junta se rompe en distancia $\sim 2a$; con probabilidad $\kappa$ arranca
+una particula hemisferica de volumen $\frac{2}{3}\pi a^3$:
+
+$$\frac{dV}{dL} = \frac{\kappa}{3}\cdot\frac{W}{H}
+  \;\equiv\; K\,\frac{W}{H}
+  \quad\Longrightarrow\quad
+  \boxed{\frac{dh_w}{dt} = k\,p(t)\cdot v(t), \quad k = K/H.}$$
+
+La energia friccional por evento de frenado es
+$E_{\rm frenada} \approx \frac{1}{2}m(v_i^2 - v_f^2)$, y el desgaste
+acumulado es proporcional a la energia disipada total. Este acumulador ---
+construido de IMU (desaceleracion) + GPS (velocidad) + J1939 (masa)---
+es el predictor fisico correcto del desgaste de balata. El odometro solo
+es un proxy debil.
+
+\subsection{Fatiga estructural --- Miner, Basquin y conteo rainflow}
+
+El dano por carga variable se acumula segun Palmgren--Miner:
+$$D = \sum_i \frac{n_i}{N_i} \geq 1 \;\Rightarrow\; \text{falla},
+  \qquad N_i \text{ de la curva de Basquin: }
+  \sigma_a = \sigma'_f\,(2N_f)^b.$$
+
+La senal continua del IMU $a(t)$ se descompone en ciclos de amplitud
+por \textbf{conteo rainflow}: identifica lazos cerrados de histeresis en
+la senal, cada uno equivalente a un ciclo de amplitud definida. El dano
+acumulado en funcion de los rangos $h_i$ de esos ciclos:
+$$D_\beta = \alpha\sum_i h_i^\beta,
+  \qquad \beta \approx 3\;\text{(crecimiento de grieta)},
+  \quad \beta \approx 5\;\text{(iniciacion)}.$$
+
+El rainflow se calcula en el borde (el IMU no se transmite crudo por LTE).
+El resultado es un indice de dano por fatiga por unidad que ningun sistema
+basado solo en km puede producir.
+
+\subsection{Rodamientos --- Lundberg--Palmgren como caso especial de Weibull}
+
+La falla por fatiga de contacto se inicia bajo la superficie, donde el
+esfuerzo cortante ortogonal $\tau_0$ es maximo. Aplicando el argumento
+de eslabon mas debil al volumen esforzado:
+
+$$\ln\frac{1}{S} \propto \frac{\tau_0^c\,N^e\,V}{z_0^h}
+  \quad\Longrightarrow\quad
+  \boxed{L_{10} = \left(\frac{C}{P}\right)^p,
+  \quad p=3\;\text{(bolas)},\quad p=\tfrac{10}{3}\;\text{(rodillos)}.}$$
+
+$C$ es dato del fabricante; $P$ se calcula de las cargas medidas por J1939.
+Esta es la misma derivacion de la Seccion~II aplicada al volumen subsuperficial.
+La vida $L_{10}$ es exactamente la vida $B_{10}$ de Weibull: la conexion
+no es coincidencia sino la misma teoria.
+
+\subsection{Aftertreatment --- el quick win}
+
+J1939 difunde sin pollear: diferencial de presion del DPF (SPN~3251),
+nivel de DEF (SPN~1761), derate por NOx (SPN~5246), presion y temperatura
+de aceite (SPN~100, 175). La tendencia de $\Delta P$, el ritmo de
+regeneraciones forzadas y un codigo pendiente de NOx son senales predictivas
+dias antes de que el sistema entre en derate. \textbf{Esta rama es totalmente
+alimentable hoy, sin calibracion adicional, y ataca los modos de falla
+mas caros del diesel moderno.}
+
+%=============================================================================
+\section{Inferencia con datos censurados y covariables}
+%=============================================================================
+
+\subsection{La verosimilitud correcta}
+
+Sea $\delta_i = 1$ si la pieza $i$ fallo y $\delta_i = 0$ si sigue viva.
+La verosimilitud con censura es:
+
+$$\mathcal{L}(\theta) = \prod_{i=1}^{n}
+  h(t_i;\theta)^{\delta_i}\,R(t_i;\theta).$$
+
+Cada observacion aporta su supervivencia $R(t_i)$; las que fallaron
+aportan ademas el riesgo $h(t_i)$ en el instante exacto. El log-verosimilitud es
+$\ell(\theta) = \sum_i[\delta_i \ln h(t_i;\theta) - H(t_i;\theta)]$.
+
+\subsection{Regresion de riesgos proporcionales de Cox}
+
+Para que la vida dependa de la operacion real, el modelo de
+riesgos proporcionales postula:
+
+$$h(t \mid \mathbf{x}) = h_0(t)\,\exp(\boldsymbol{\beta}^{\top}\mathbf{x}),$$
+
+donde $\mathbf{x}$ incluye energia de frenado acumulada, dano de Miner,
+severidad de ruta, carga media, marca y conductor. La verosimilitud parcial
+de Cox estima $\boldsymbol{\beta}$ sin especificar $h_0(t)$: en cada tiempo
+de falla $t_{(j)}$, la probabilidad de que falle la pieza $i$ dado el
+conjunto en riesgo $\mathcal{R}_j$ es:
+
+$$P(\text{falla}\;i \mid t_{(j)}) =
+  \frac{e^{\boldsymbol{\beta}^\top\mathbf{x}_i}}
+       {\sum_{k \in \mathcal{R}_j} e^{\boldsymbol{\beta}^\top\mathbf{x}_k}}.$$
+
+El riesgo base $h_0(t_{(j)})$ se cancela. Se estima el efecto de cada
+covariable sobre la vida con minimas suposiciones distribucionales.
+
+%=============================================================================
+\section{Procesos de degradacion: la RUL como distribucion completa}
+%=============================================================================
+
+Cuando se mide directamente una variable de salud que degrada
+($\Delta P_{\rm DPF}$, espesor de balata, capacidad de bateria), la RUL
+pasa de ser un estadistico poblacional a una distribucion condicionada al
+estado actual del individuo.
+
+\textbf{Proceso de Wiener.} Modelo de degradacion lineal con ruido:
+$X(t) = x_0 + \mu t + \sigma B(t)$.
+La falla es el primer cruce del umbral $a$. Por el principio de reflexion
+del movimiento browniano con deriva:
+
+$$f_{T_a}(t) = \frac{(a-x_0)}{\sigma\sqrt{2\pi t^3}}\,
+  \exp\!\left[-\frac{(a-x_0-\mu t)^2}{2\sigma^2 t}\right]
+  \;\sim\;
+  \mathrm{IG}\!\left(\frac{a-x_0}{\mu},\;\frac{(a-x_0)^2}{\sigma^2}\right).$$
+
+La RUL tiene distribucion \textbf{Gaussiana Inversa}. No es un numero
+puntual: es una distribucion completa. Los intervalos de confianza del
+pronostico entran directamente en la decision de costo optimo.
+
+La deriva $\mu$ no es un parametro libre: la fija la fisica. En frenos,
+$\mu = k\,\langle p\,v \rangle$ (Archard); en el DPF, $\mu$ es la tasa
+de acumulacion de hollin. La fisica provee el prior estructural; los datos
+ajustan el residuo y la incertidumbre $\sigma$.
+
+\textbf{Proceso Gamma.} Para desgaste estrictamente monotono, el proceso
+correcto tiene incrementos no negativos: $\Delta X \sim \mathrm{Gamma}(\alpha\Delta t,\lambda)$.
+La confiabilidad en $t$ es la gamma incompleta regularizada evaluada en $a$.
+
+%=============================================================================
+\section{Estimacion online en regimen de streaming}
+%=============================================================================
+
+Una condicion del mundo real que el diseno debe enfrentar desde el principio:
+\textbf{el sistema arranca en un entorno donde la mayoria de las
+intervenciones son reactivas.} Las reparaciones no llegan en forma de
+datos limpios y etiquetados; llegan como eventos esporadicos, con ordenes
+de trabajo de calidad variable, en una flota que mezcla historiales
+incompletos con unidades nuevas sin historia alguna. El modelo no puede
+esperar a tener datos maduros: debe operar desde el dia uno, actualizar
+sus distribuciones conforme lleguen eventos, y mejorar de forma continua
+a medida que la flota acumula historia.
+
+La respuesta matematica es el \textbf{filtro bayesiano recursivo},
+organizado en capas a distinta cadencia. Ninguna recalcula todo.
+
+\subsection{La ecuacion de Fokker--Planck como motor del filtro}
+
+El estado de degradacion de cada unidad es una densidad de probabilidad
+que evoluciona en el tiempo. Para la dinamica de Wiener
+$dX = \mu\,dt + \sigma\,dW$, la densidad de creencia $p(x,t)$ obedece
+la \textbf{ecuacion de Fokker--Planck}:
+
+$$\frac{\partial p}{\partial t} =
+  -\frac{\partial}{\partial x}[\mu\,p]
+  + \frac{\sigma^2}{2}\frac{\partial^2 p}{\partial x^2}.$$
+
+El filtro opera en dos pasos por cada observacion:
+
+\begin{enumerate}
+  \item \textbf{Prediccion:} propagar $p(x,t)$ segun Fokker--Planck
+    hasta el siguiente instante de observacion.
+  \item \textbf{Correccion:} actualizar con la observacion $y_t$ por
+    Bayes puntual:
+    $p(x_t \mid y_{1:t}) \propto p(y_t \mid x_t)\,p(x_t \mid y_{1:t-1})$.
+\end{enumerate}
+
+En la practica se implementa como filtro de Kalman (lineal-gaussiano),
+UKF (no lineal, momentos exactos de segundo orden), o filtro de particulas
+(no parametrico, a costa de costo computacional).
+
+\subsection{Sistemas reparables: el factor de calidad de Kijima}
+
+Una reparacion no produce necesariamente una pieza nueva. El modelo de
+\textbf{edad virtual generalizada (GRP) de Kijima} parametriza la eficacia
+de cada intervencion:
+
+$$v_{n+1} = q\,(v_n + T_n),$$
+
+donde $v_n$ es la edad virtual antes de la $n$-esima reparacion y $T_n$
+el tiempo entre fallas. Con $q = 0$ la reparacion es perfecta
+(as-good-as-new); con $q = 1$ es minima (as-bad-as-old); $q > 0$ en la
+practica refleja que la calidad de la reparacion es imperfecta.
+
+El sistema \textbf{estima $q$ por taller, por tipo de intervencion y
+por componente} a partir de la historia de reincidencia. Esto convierte
+cada orden de trabajo en una actualizacion del modelo y produce un
+scorecard de calidad de reparacion que ningun sistema de mantenimiento
+convencional extrae.
+
+Critico en el regimen de arranque: cuando casi todo es reactivo, la
+secuencia de tiempos entre fallas $T_1, T_2, \dots$ es la senal primaria
+de aprendizaje. El proceso de renovacion generalizada de Kijima extrae
+de esa secuencia tanto la distribucion de vida como la calidad de las
+intervenciones, con censura correcta sobre las piezas que aun no vuelven
+a fallar.
+
+\subsection{Actualizacion de hiperparametros de flota: SG-MCMC}
+
+Los hiperparametros jerarquicos ($\mu_\beta$, $\tau_\bullet$, etc.) se
+actualizan en streaming sin recalcular toda la cadena de Markov. La clave
+es que el gradiente estocastico de la log-verosimilitud define una SDE
+cuya \textbf{distribucion estacionaria es el posterior}
+(Stochastic Gradient Langevin Dynamics):
+
+$$d\theta = \frac{\varepsilon}{2}
+  \nabla_\theta \log p(\theta \mid \mathcal{D})\,dt + \sqrt{\varepsilon}\,dW.$$
+
+Minibatches de reparaciones recientes actualizan los hiperparametros sin
+acceder a toda la historia. Para flotas no estacionarias (cambio de
+flota, nueva normativa, diferente patron de carga estacional) se anade
+un factor de olvido exponencial sobre observaciones antiguas.
+
+\subsection{Inferencia amortizada: despliegue instantaneo para unidades nuevas}
+
+Reestimar el modelo para cada unidad nueva con MCMC es prohibitivo en
+produccion. La solucion es \textbf{inferencia basada en simulacion (SBI)
+/ Neural Posterior Estimation}: entrenar una vez, offline, una red
+$q_\psi(\theta \mid x)$ que aprende el mapa datos $\to$ posterior,
+con pares $(\theta, x)$ generados por el simulador fisico:
+
+$$q_\psi(\theta \mid x) \approx p(\theta \mid x).$$
+
+En despliegue, la inferencia del posterior de una unidad nueva es un
+\textbf{forward pass}, no una corrida de MCMC. El simulador ya existe:
+la fisica de falla genera datos sinteticos etiquetados ilimitados.
+La red amortizada convierte la inferencia de minutos en milisegundos,
+lo cual es necesario para que el sistema escale a miles de unidades.
+
+\medskip
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{3.4cm}p{4.0cm}p{2.8cm}p{2.4cm}@{}}
+\toprule
+\small\textbf{Capa} & \small\textbf{Que estima} & \small\textbf{Metodo}
+  & \small\textbf{Cadencia} \\
+\midrule
+\rowcolor{rowalt}
+\small Filtrado de estado & \small RUL por unidad & \small KF / UKF / particulas
+  & \small Por evento \\
+\small Eventos recurrentes & \small Intensidad; $q$ de Kijima & \small GRP / NHPP
+  & \small Por reparacion \\
+\rowcolor{rowalt}
+\small Hiperparametros de flota & \small $(\beta, \eta, \tau_\bullet)$ jerarquicos
+  & \small HMC / SG-MCMC & \small Nocturno \\
+\small Despliegue & \small Posterior de unidad nueva & \small SBI / forward pass
+  & \small Instantaneo \\
+\rowcolor{rowalt}
+\small Politica & \small Accion optima & \small POMDP / RL & \small Por decision \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%=============================================================================
+\section{Marco jerarquico bayesiano de flota multimarca}
+%=============================================================================
+
+Una flota real mezcla marcas, modelos, conductores y rutas. El partial
+pooling bayesiano anidado resuelve el problema de datos escasos por
+subsegmento sin sacrificar la heterogeneidad real:
+
+$$\ln\eta_i
+  = \underbrace{\alpha_{c,k}}_{\text{clase}}
+  + \underbrace{\delta_{c,k,m}}_{\text{marca}}
+  + \underbrace{\zeta_{c,k,m,j}}_{\text{modelo}}
+  + \boldsymbol{\gamma}_c^\top\mathbf{x}_i,$$
+
+$$\alpha_{c,k} \sim \mathcal{N}(\mu_c,\;\tau_{\rm clase}^2), \quad
+  \delta \sim \mathcal{N}(0,\;\tau_{\rm marca}^2), \quad
+  \zeta \sim \mathcal{N}(0,\;\tau_{\rm modelo}^2).$$
+
+Las $\tau_\bullet$ se estiman de los datos. Si las marcas de una clase se
+parecen, el modelo agrupa fuerte; si difieren, desagrupa. No hay eleccion
+manual de cuanto pooling aplicar.
+
+Una unidad con menos sensores (OBD vs.\ J1939, o sin CAN) trata la
+covariable faltante como variable latente y la marginaliza:
+$$p(T_i \mid \mathbf{x}_{i,\mathrm{obs}})
+  = \int p(T_i \mid \mathbf{x}_{i,\mathrm{obs}},\,x_{i,\mathrm{mis}})
+  \,p(x_{i,\mathrm{mis}} \mid k)\,dx_{i,\mathrm{mis}}.$$
+
+Una unidad con menos informacion produce un posterior predictivo mas ancho.
+La incertidumbre se propaga correctamente a la RUL y al umbral de decision.
+No hay imputation manual ni descarte de unidades incompletas.
+
+%=============================================================================
+\section{Cuantificacion del ahorro}
+%=============================================================================
+
+Esta seccion deriva el ahorro esperado en forma cerrada. Los parametros
+numericos son estimaciones conservadoras basadas en literatura de
+autotransporte; se reemplazan con datos propios de la flota una vez
+disponibles.
+
+\subsection{Modelo de costo de referencia: mantenimiento reactivo}
+
+En un regimen puramente reactivo, la tasa de costo de largo plazo
+bajo el proceso de renovacion es el teorema de la teoria de renovacion
+aplicado al proceso de falla con distribucion Weibull$(\beta, \eta)$:
+
+$$g_{\rm reactivo} = \frac{c_f}{\eta\,\Gamma(1 + 1/\beta)},$$
+
+donde $c_f$ es el costo de una falla no planificada (reparacion + downtime
++ remolque) y $\eta\,\Gamma(1+1/\beta) = \mathrm{MTTF}$ es la vida media.
+
+\subsection{Modelo de costo con mantenimiento preventivo optimo}
+
+Bajo una politica de reemplazo por edad $T$, el costo de largo plazo
+por unidad de tiempo es:
+
+$$g(T) = \frac{c_p\,R(T) + c_f\,[1-R(T)]}
+  {\displaystyle\int_0^T R(t)\,dt}.$$
+
+La condicion de optimalidad $g'(T^*) = 0$ da:
+
+$$h(T^*)\int_0^{T^*} R(t)\,dt - F(T^*)
+  = \frac{c_p}{c_f - c_p}.$$
+
+El lado izquierdo crece con $T$ si y solo si $h$ es creciente ($\beta > 1$),
+garantizando que existe un unico minimo global $T^*$. El \textbf{ahorro
+unitario por unidad de tiempo} frente a la estrategia reactiva pura es:
+
+$$\Delta g = g_{\rm reactivo} - g(T^*)
+  = \frac{c_f}{\eta\,\Gamma(1+1/\beta)} - g(T^*).$$
+
+\subsection{Efecto del error de censura: el costo oculto}
+
+Si el modelo ignora la censura y estima $\hat{\eta}_{\rm sesgado}$
+en lugar del verdadero $\eta$, el intervalo de intervencion se desplaza a
+$\hat{T}^*$ con costo:
+
+$$g(\hat{T}^*) = g(T^*) + \underbrace{\frac{1}{2}\,g''(T^*)\,(\hat{T}^* - T^*)^2}_{\text{costo del sesgo}}.$$
+
+Para parametros tipicos ($\beta = 2$, fraccion censurada $\sim 70\%$), el
+sesgo en $\hat{\eta}$ es del orden del 30--50\% (el modelo ve solo
+las piezas que fallaron, que son las de vida corta). El costo del sesgo
+es cuadratico en el desplazamiento: un error de 30\% en $\eta$
+se traduce en un costo de largo plazo entre 15 y 40\% por encima del optimo.
+
+\subsection{Modelo de ahorro con RUL predictiva (caso general)}
+
+El sistema predice la distribucion de vida residual $p_T(\tau \mid t,\mathbf{x})$
+para cada unidad individual, condicionada a su telemetria actual. La politica
+optima elige $T^*(t, \mathbf{x})$ que minimiza el costo esperado:
+
+$$g^*(t, \mathbf{x}) = \min_{\tau > 0}\,
+  \mathbb{E}_T\!\left[
+    \frac{c_p\,\mathbf{1}(T > \tau) + c_f\,\mathbf{1}(T \leq \tau)}
+    {\min(T,\tau)}
+  \right].$$
+
+La ganancia frente al preventivo optimo de poblacion $g(T^*)$ es:
+
+$$\Delta g_{\rm predictivo}
+  = g(T^*) - \mathbb{E}_{\mathbf{x}}\!\left[g^*(t, \mathbf{x})\right],$$
+
+que es estrictamente positiva cuando la variabilidad entre unidades es
+no trivial, porque conocer el estado individual permite intervenir mas
+tarde en las piezas sanas y mas pronto en las deterioradas.
+
+\subsection{Estimacion numerica con parametros representativos}
+
+Usamos un modelo de balata de freno como caso base, con parametros
+conservadores documentados en la literatura de autotransporte:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Parametro} & \textbf{Valor} & \textbf{Fuente} \\
+\midrule
+$\beta$ (Weibull, balata) & $2.2$ & Tipico de desgaste abrasivo \\
+$\eta$ (vida caracteristica) & $80{,}000$ km & Referencia OEM media \\
+$c_p$ (preventivo) & \$3{,}500 MXN & Refaccion + mano de obra \\
+$c_f$ (correctivo) & \$28{,}000 MXN & $c_p$ + downtime + remolque \\
+Flota de referencia & 50 unidades & Flota mediana tipica \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Con estos valores, el MTTF es:
+$$\mathrm{MTTF} = \eta\,\Gamma(1+1/\beta) = 80{,}000 \cdot \Gamma(1.455) \approx 71{,}200\text{ km}.$$
+
+El costo reactivo de largo plazo (por unidad, por km):
+$$g_{\rm reactivo} = \frac{28{,}000}{71{,}200} \approx 0.393\text{ MXN/km}.$$
+
+Resolviendo $g'(T^*)=0$ numericamente con los parametros dados:
+$T^* \approx 58{,}000$ km, con:
+$$g(T^*) = \frac{3{,}500 \cdot R(T^*) + 28{,}000 \cdot [1-R(T^*)]}
+  {\displaystyle\int_0^{T^*} R(t)\,dt}
+  \approx 0.268\text{ MXN/km}.$$
+
+La reduccion de costo frente a la estrategia reactiva pura es:
+
+\begin{ahorro}
+$$\Delta g = 0.393 - 0.268 = \mathbf{0.125\text{ MXN/km por unidad.}}$$
+
+Para una flota de 50 unidades con 60,000 km/ano cada una:
+
+$$\text{Ahorro anual} = 0.125 \times 60{,}000 \times 50
+  \approx \mathbf{\$375{,}000\text{ MXN/ano}} \quad (\approx \$19{,}000\text{ USD}).$$
+
+Esto considera solo balatas de eje delantero. Con los demas componentes
+(neumáticos, aceite, aftertreatment, batería), la magnitud total es tipicamente
+3 a 5 veces mayor, alcanzando \$1.1 a \$1.9 millones MXN por ano
+para una flota de 50 unidades.
+\end{ahorro}
+
+\subsection{El bono del aftertreatment: un DPF es un caso diferente}
+
+Un filtro de particulas forzado a reparacion correctiva (derate + remolque +
+sustitucion del DPF) cuesta entre \$35,000 y \$80,000 MXN por evento,
+versus una limpieza preventiva de \$2,500 MXN. Con una tasa de falla de
+DPF de $\sim$0.15 eventos/ano por unidad en operacion de ciclo severo, el
+ahorro esperado por unidad por ano es:
+
+$$\Delta c_{\rm DPF} = (0.15)(35{,}000 - 2{,}500) = \$4{,}875\text{ MXN/ano.}$$
+
+Para 50 unidades: $\mathbf{\$243{,}750\text{ MXN/ano}}$. Pero el numero mas
+relevante es que un DPF correctivo equivale a 14 limpiezas preventivas,
+y la distincion entre los dos regimenes es exactamente lo que el sistema
+detecta con dias de anticipacion a traves de la tendencia de $\Delta P_{\rm DPF}$.
+
+\subsection{Periodo de convergencia: arranque reactivo}
+
+La transicion del regimen reactivo al predictivo no es instantanea.
+El modelo necesita acumular historia de fallas y reparaciones para que los
+parametros Weibull converjan. El tiempo de convergencia depende del numero
+de eventos observados por componente. Con el estimador de maxima
+verosimilitud bajo censura, la varianza del estimado de $\beta$ es:
+
+$$\mathrm{Var}[\hat\beta] \approx \frac{\beta^2}{d},$$
+
+donde $d$ es el numero de fallas observadas (no de unidades). Con $d = 20$
+fallas, el error estandar relativo en $\beta$ es $\sim 22\%$; con $d = 50$,
+$\sim 14\%$. Para una flota de 50 unidades con tasa de falla de 0.8/ano
+por componente, se acumulan 40 fallas en el primer ano: el estimador de
+$\beta$ converge a precision util en los primeros 12 a 18 meses.
+
+Durante ese periodo, el modelo opera con el prior jerarquico de clase
+(parametros derivados de la literatura de fabricantes), luego va absorbiendo
+la historia propia. El costo de ese periodo de convergencia no es cero,
+pero tampoco es el costo reactivo completo: el modelo ya alerta sobre
+senales directas del bus (DTC, tendencia de $\Delta P$, voltaje de bateria)
+que no requieren historia de fallas.
+
+%=============================================================================
+\section{Por que este enfoque domina}
+%=============================================================================
+
+\subsection{Contra los sistemas basados en reglas OEM}
+
+Los sistemas de reglas (alertar cuando el DTC X aparece, cambiar aceite a
+$N$ km) son el punto de partida correcto pero tienen un techo bajo:
+no aprenden de la operacion real, no distinguen severidad de ruta,
+no cuantifican incertidumbre, y no optimizan el momento de intervencion.
+Son un umbral fijo en un problema que tiene estructura continua.
+El sistema que describimos los subsume: las reglas OEM son el prior
+del modelo antes de ver datos. Una vez que hay historia, el posterior
+toma el control.
+
+\subsection{Contra los sistemas puramente de datos (ML sin fisica)}
+
+Los sistemas de ML sin fisica necesitan miles de fallas por componente
+y por tipo de vehiculo para generalizar. La razon es que el espacio de
+configuraciones (marca, modelo, conductor, ruta, carga) es demasiado grande
+para que un modelo sin estructura lo cubra eficientemente. Las dos
+consecuencias practicas son: (1) no funcionan en flotas pequeñas o
+heterogeneas; (2) no generalizan a marcas nuevas sin reentrenar desde cero.
+
+Nuestro enfoque usa la fisica (Archard, Miner, Lundberg--Palmgren) para
+fijar la estructura funcional de la degradacion. El ML estima los residuos
+y los parametros de dispersion. Esto reduce la cantidad de datos necesaria
+en un orden de magnitud, porque la fisica ya le dice al modelo la forma
+correcta de la curva de degradacion.
+
+\subsection{Contra los sistemas de supervivencia sin jerarquia}
+
+Un modelo Weibull plano (sin jerarquia) o un Cox sin partial pooling
+sufre el mismo problema: o bien colapsa todo en un modelo global que
+ignora la heterogeneidad real entre unidades, o bien ajusta un modelo
+separado por subsegmento y se queda sin datos. El partial pooling bayesiano
+es la unica solucion que interpola entre estos dos extremos de forma
+optima, con la cantidad de agrupamiento determinada por los datos.
+
+\subsection{Contra los sistemas sin cuantificacion de incertidumbre}
+
+Un sistema que reporta ``la balata dura 30 dias mas'' sin intervalo de
+confianza es inutilizable para decision de costo optimo. El umbral de
+alerta correcto depende de la razon $c_f / c_p$; calcularlo requiere
+la distribucion de RUL, no su media. La calibracion de las probabilidades
+---que la frecuencia de falla entre unidades con probabilidad predicha
+$p$ sea efectivamente $p$--- es tan importante como el error medio de
+prediccion, y es lo que el sistema mide explicitamente.
+
+\vspace{0.8cm}
+
+{\color{rule}\rule{\linewidth}{0.4pt}}
+
+\vspace{0.4cm}
+
+\begin{center}
+{\small\color{muted}
+Junio 2026 \quad|\quad Confidencial \quad|\quad
+Para discusion tecnica con equipos de ingenieria}
+\end{center}
+
+\end{document}

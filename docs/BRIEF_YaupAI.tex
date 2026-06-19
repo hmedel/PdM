@@ -1,0 +1,355 @@
+\documentclass[10.5pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+
+
+\geometry{left=2.6cm,right=2.6cm,top=2.4cm,bottom=2.4cm}
+
+\definecolor{primary}{RGB}{15,23,42}
+\definecolor{accent}{RGB}{30,64,175}
+\definecolor{muted}{RGB}{100,116,139}
+\definecolor{lightbg}{RGB}{248,250,252}
+\definecolor{mathbg}{RGB}{241,245,249}
+\definecolor{bordercol}{RGB}{203,213,225}
+\definecolor{green}{RGB}{22,101,52}
+\definecolor{greenbg}{RGB}{240,253,244}
+\definecolor{greenborder}{RGB}{134,239,172}
+\definecolor{dangerred}{RGB}{185,28,28}
+
+\hypersetup{colorlinks=false}
+
+\titleformat{\section}
+  {\large\bfseries\color{primary}}{}{0em}{}[{\color{accent}\vspace{2pt}\hrule height 0.7pt\vspace{0pt}}]
+\titlespacing{\section}{0pt}{1.4em}{0.5em}
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{accent}}{}{0em}{}
+\titlespacing{\subsection}{0pt}{0.9em}{0.2em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{muted}\textit{Confidencial --- Para uso de Yaup AI}}
+\fancyhead[R]{\small\color{muted}Junio 2026}
+\fancyfoot[C]{\small\color{muted}\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\tcbuselibrary{skins,breakable}
+
+\newtcolorbox{mathbox}{
+  colback=mathbg, colframe=bordercol, boxrule=0.6pt,
+  arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, breakable}
+
+\newtcolorbox{greenbox}{
+  colback=greenbg, colframe=greenborder, boxrule=0.6pt,
+  arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, breakable}
+
+\newtcolorbox{notebox}{
+  colback=lightbg, colframe=bordercol, boxrule=0.6pt,
+  arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt, breakable}
+
+\setlength{\parskip}{0.38em}
+\setlength{\parindent}{0em}
+\renewcommand{\arraystretch}{1.28}
+\setlist[itemize]{nosep, topsep=1pt, leftmargin=1.4em, label={\color{accent}\textbullet}}
+
+\begin{document}
+
+% PORTADA
+\thispagestyle{empty}
+\vspace*{1.2cm}
+
+{\color{muted}\small\textbf{CONFIDENCIAL}\quad|\quad Para uso de Yaup AI}
+
+\vspace{0.9cm}
+
+{\fontsize{28}{33}\selectfont\bfseries\color{primary}
+Mantenimiento predictivo\\ de flota vehicular}
+
+\vspace{0.4cm}
+
+{\fontsize{14}{18}\selectfont\color{accent}
+Fundamentos matematicos y fisicos de lo que construimos}
+
+\vspace{0.5cm}
+{\color{bordercol}\hrule height 1pt}
+\vspace{0.5cm}
+
+{\large\color{muted}
+Un sistema que modela como se desgasta cada pieza,\\
+cuando va a fallar y cuando conviene intervenir ---\\
+con incertidumbre cuantificada y decisiones de costo optimo.
+}
+
+\vspace{1.2cm}
+
+\begin{notebox}
+\textbf{Que es este documento.}
+Yaup AI tiene ingenieros y ejecutivos excelentes.
+Lo que no tiene es fisicos especializados en confiabilidad y degradacion de sistemas mecanicos.
+Este documento no es un pitch.
+Es una explicacion de la matematica real que usamos y por que eso importa ---
+para que la conversacion sea entre iguales.
+\end{notebox}
+
+\vspace{1.0cm}
+
+\begin{tabular}{@{}p{0.5cm}p{13cm}@{}}
+  \color{accent}I   & El problema: la falla como cruce de un umbral fisico \\[4pt]
+  \color{accent}II  & Distribuciones de vida desde primeros principios \\[4pt]
+  \color{accent}III & Fisica de falla componente a componente \\[4pt]
+  \color{accent}IV  & Inferencia con datos censurados y regresion de supervivencia \\[4pt]
+  \color{accent}V   & Procesos de degradacion y vida util remanente (RUL) \\[4pt]
+  \color{accent}VI  & Estimacion online: de Fokker--Planck a filtros de particulas \\[4pt]
+  \color{accent}VII & Modelo jerarquico bayesiano de flota multimarca \\[4pt]
+  \color{accent}VIII& Decision optima: cuando intervenir y cuanto cuesta no hacerlo \\[4pt]
+  \color{accent}IX  & El flujo completo \\
+\end{tabular}
+
+\newpage
+
+% I
+\section{El problema: la falla como cruce de un umbral fisico}
+
+La premisa de la mayoria de los sistemas de mantenimiento actuales es un calendario: cambio de aceite cada $N$ km, balatas cada $M$ meses.
+Ese calendario no tiene fisica adentro. No sabe si el vehiculo subio montanas o rodillo en carretera plana. No distingue a un conductor agresivo de uno suave. No puede saber si una pieza instalada ayer y sometida a carga extrema ya esta mas desgastada que otra instalada hace seis meses con uso moderado.
+
+La premisa correcta es una sola: \textbf{una pieza es un sistema fisico cuyo estado se degrada. La falla es el cruce de un umbral.}
+
+Sea $T \geq 0$ el tiempo (o km, u horas-motor) hasta la falla de un componente.
+$T$ es una variable aleatoria. Lo que importa fisicamente no es $T$ directamente, sino la \textbf{tasa de riesgo instantanea}:
+
+\begin{mathbox}
+$$h(t) = \lim_{\Delta t \to 0} \frac{P(t < T \leq t+\Delta t \mid T > t)}{\Delta t} = \frac{f(t)}{R(t)} = -\frac{d}{dt}\ln R(t)$$
+
+Dado que la pieza llego viva al tiempo $t$, $h(t)$ es la tasa a la que esta fallando \textit{ahora mismo}.
+Especificar $h(t)$ equivale a especificar todo el modelo:
+$$R(t) = \exp\!\left(-\int_0^t h(u)\,du\right).$$
+\end{mathbox}
+
+La forma de $h(t)$ tiene fisica adentro. Decrece durante la mortalidad infantil (defectos de fabricacion), es constante para fallas aleatorias (eventos externos), y \textbf{crece} durante el desgaste. El regimen creciente es exactamente el que el mantenimiento predictivo debe anticipar.
+
+La \textbf{vida util remanente} (RUL) es lo que el negocio necesita:
+
+\begin{mathbox}
+$$\mathrm{RUL}(t) \equiv \mathbb{E}[T - t \mid T > t] = \frac{\displaystyle\int_t^\infty R(u)\,du}{R(t)}$$
+
+Esto \textit{no} es $\mathrm{MTTF} - t$. Para riesgo creciente (desgaste, $\beta > 1$), la RUL decrece con la edad: la pieza vieja tiene menos vida esperada que una nueva. Para riesgo constante (falla aleatoria), $\mathrm{RUL}(t) = \mathrm{MTTF}$ siempre: la pieza no envejece y el mantenimiento preventivo por calendario no ayuda.
+\end{mathbox}
+
+\section{Por que Weibull es inevitable}
+
+La distribucion de Weibull no es una eleccion arbitraria de conveniencia. Se \textbf{deriva} desde la teoria de valores extremos.
+
+Un componente real es una coleccion de $N$ micro-eslabon es (granos, asperezas, volumenes elementales). Falla cuando el mas debil falla: $T = \min(X_1, \dots, X_N)$. Si la cola izquierda de cada eslabon es ley de potencia, $F_X(t) \approx (t/t_0)^\beta$ para $t \to 0^+$, entonces:
+
+$$R_T(t) = [1 - (t/t_0)^\beta]^N \;\xrightarrow{N \gg 1}\; \exp\!\left[-\left(\frac{t}{\eta}\right)^\beta\right], \qquad \eta = t_0\,N^{-1/\beta}$$
+
+\begin{mathbox}
+$$R(t) = \exp\!\left[-\left(\frac{t}{\eta}\right)^\beta\right], \qquad h(t) = \frac{\beta}{\eta}\left(\frac{t}{\eta}\right)^{\beta-1}$$
+
+Este es el teorema de Fisher--Tippett--Gnedenko: la distribucion de minimos de variables acotadas por abajo converge a Weibull. $\beta$ selecciona el regimen de la curva de banera. $\eta$ es la vida caracteristica ($R(\eta) = e^{-1} \approx 0.368$). No hay eleccion; hay derivacion desde la fisica del eslabon mas debil.
+\end{mathbox}
+
+Consecuencia fisica directa: \textbf{efecto de tamano.} $\eta \propto N^{-1/\beta}$. Piezas mas grandes (mas eslabones) son intrisecamente mas debiles. Esto se mide en materiales y es la razon de que la resistencia a la fractura tenga dispersion Weibull.
+
+La vida residual esperada de una pieza con edad actual $t$ es:
+\begin{mathbox}
+$$\mathbb{E}[T \mid T>t] = \eta\, e^{(t/\eta)^\beta}\,\Gamma\!\left(1+\tfrac{1}{\beta},\; (t/\eta)^\beta\right), \qquad \mathrm{RUL}(t) = \mathbb{E}[T\mid T>t] - t$$
+
+$\Gamma(a,x) = \int_x^\infty w^{a-1}e^{-w}dw$ es la funcion gamma incompleta superior. Esto es lo que el motor de pronostico evalua en linea conforme cada pieza envejece. Para $\beta > 1$, $\mathrm{RUL}(t)$ decrece estrictamente con la edad.
+\end{mathbox}
+
+\section{Fisica de falla componente a componente}
+
+Cada componente tiene un mecanismo fisico derivable desde primeros principios. Usamos esa fisica para construir \textit{features} que el modelo estadistico consume, reduciendo la cantidad de datos necesaria y garantizando generalizacion a marcas nuevas.
+
+\subsection{Frenos --- Ley de Archard desde el contacto de asperezas}
+
+Dos superficies se tocan solo en las cimas de sus rugosidades. Bajo carga $W$, las asperezas se deforman plasticamente hasta que la presion de contacto iguala la dureza $H$. El area real de contacto es $A_r = W/H$, independiente del area aparente (resultado de Bowden--Tabor). Al deslizar, cada junta de radio $a$ se rompe en distancia $\sim 2a$; con probabilidad $\kappa$ arranca una particula hemisferica de volumen $\frac{2}{3}\pi a^3$:
+
+\begin{mathbox}
+$$\boxed{V = K\,\frac{W\,L}{H}}, \qquad K \equiv \frac{\kappa}{3}$$
+
+En forma local: $\dfrac{dh_w}{dt} = k\,p\,v$, \;\; con $k = K/H$, $p$ la presion de contacto, $v$ la velocidad de deslizamiento.
+\end{mathbox}
+
+La energia fricional es $\dot{e} = \mu_f\, p\, v$, entonces \textbf{el desgaste de balata es proporcional a la energia frictional disipada}. Cada frenada contribuye:
+$$\Delta h_w \;\propto\; \sum_{\mathrm{frenadas}} \frac{E_{\mathrm{frenada}}}{H}, \qquad E_{\mathrm{frenada}} \approx \tfrac{1}{2}m\,(v_i^2 - v_f^2).$$
+
+Medimos $v$ del GPS y J1939/OBD, desaceleracion del IMU, masa de los sensores de eje (SPN~178/179). Acumulamos energia de frenado por unidad, evento a evento. Ese acumulado es el predictor fisico correcto; no el odometro.
+
+\subsection{Fatiga estructural --- Palmgren--Miner y conteo rainflow}
+
+Para chasis, suspension y soportes, el IMU es el instrumento primario. El dano se acumula linealmente (regla de Miner):
+$$D = \sum_i \frac{n_i}{N_i} \geq 1 \;\Rightarrow\; \text{falla}, \qquad \sigma_a = \sigma_f'\,(2N_f)^b \quad\text{(Basquin)}$$
+
+El IMU entrega una senal continua $a(t)$. El \textbf{conteo rainflow} la descompone en lazos cerrados de histeresis, cada uno un ciclo con su amplitud. El dano acumulado en terminos de los rangos $h_i$ de esos ciclos:
+$$D_\beta = \alpha\sum_i h_i^\beta, \qquad \beta \approx 3 \;\text{(crecimiento de grieta)},\quad \beta \approx 5 \;\text{(iniciacion)}.$$
+
+El rainflow se calcula en el borde (sin enviar la senal cruda por LTE), emitiendo histogramas de ciclos que caben holgadamente en el presupuesto de datos.
+
+\subsection{Rodamientos --- Lundberg--Palmgren es Weibull de eslabon mas debil}
+
+La falla por fatiga de contacto se inicia bajo la superficie, donde el esfuerzo cortante ortogonal $\tau_0$ es maximo. Aplicando el argumento de eslabon mas debil al volumen esforzado $V$:
+$$\ln\frac{1}{S} \propto \frac{\tau_0^c\,N^e\,V}{z_0^h} \quad\Longrightarrow\quad \boxed{L_{10} = \left(\frac{C}{P}\right)^p, \quad p=3 \;\text{(bolas)},\quad p=\tfrac{10}{3} \;\text{(rodillos)}}$$
+
+$C$ es dato del fabricante; $P$ se calcula de las cargas medidas por J1939. Esta es la misma demostracion de la Parte~II aplicada al volumen subsuperficial. La deteccion de falla incipiente por vibracion (frecuencias BPFO/BPFI) es una mejora documentada para fase 2, que exige un acelerometro de mayor ancho de banda que el MPU6050.
+
+\subsection{Aftertreatment (DPF/DEF/SCR) y motor --- el quick win}
+
+J1939 difunde sin necesidad de pollear: presion diferencial del DPF (SPN~3251), nivel de DEF (SPN~1761), derate por NOx (SPN~5246), presion y temperatura de aceite (SPN~100, 175), conteo de regeneraciones. La tendencia de $\Delta P$, el ritmo de regeneraciones forzadas y un codigo pendiente de NOx son senales predictivas dias antes de que el sistema entre en derate. \textbf{Este es el modulo que se construye primero: dato totalmente alimentable hoy, sin calibracion adicional, atacando las fallas mas caras del diesel moderno.}
+
+\section{Inferencia con datos censurados}
+
+En una flota viva, la mayoria de las piezas no ha fallado al momento de observarlas: $T_i > t_i$. Esto es \textbf{censura por la derecha}. Ignorarla sesga la estimacion hacia vidas cortas de forma grosera.
+
+\begin{mathbox}
+$$\mathcal{L}(\theta) = \prod_i h(t_i;\theta)^{\delta_i}\,R(t_i;\theta)$$
+
+$\delta_i = 1$ si la pieza $i$ fallo; $\delta_i = 0$ si sigue viva. Cada observacion aporta su supervivencia $R(t_i)$; las que fallaron aportan ademas el riesgo $h(t_i)$ en el instante exacto de falla.
+\end{mathbox}
+
+Para incorporar telemetria como factores de riesgo, el modelo de \textbf{riesgos proporcionales de Cox} postula:
+$$h(t \mid \mathbf{x}) = h_0(t)\,\exp(\boldsymbol\beta^\top\mathbf{x})$$
+
+El truco elegante: en cada tiempo de falla $t_{(j)}$, la probabilidad de que falle la pieza $i$ dado el conjunto en riesgo $\mathcal{R}_j$ es:
+$$P(\text{falla}\;i \mid t_{(j)}) = \frac{e^{\boldsymbol\beta^\top\mathbf{x}_i}}{\sum_{k\in\mathcal{R}_j}e^{\boldsymbol\beta^\top\mathbf{x}_k}}$$
+
+El riesgo base $h_0(t)$ se cancela. Se estima $\boldsymbol\beta$ ---el efecto de cada covariable--- sin asumir ninguna forma funcional para $h_0$. El vector $\mathbf{x}$ incluye: energia de frenado acumulada, dano rainflow--Miner, severidad de ruta (GPS), carga media (J1939), marca y modelo.
+
+\section{Procesos de degradacion y RUL como distribucion}
+
+Cuando se mide una variable que degrada ---espesor de balata, $\Delta P$ del DPF, capacidad de bateria--- el pronostico pasa de poblacional a individual.
+
+\textbf{Proceso de Wiener.} Modelo de degradacion lineal con ruido: $X(t) = x_0 + \mu t + \sigma B(t)$. La falla ocurre al primer cruce del umbral $a$. Por el principio de reflexion del browniano con deriva:
+
+\begin{mathbox}
+$$f_{T_a}(t) = \frac{(a-x_0)}{\sigma\sqrt{2\pi t^3}}\exp\!\left[-\frac{(a-x_0-\mu t)^2}{2\sigma^2 t}\right] \;\sim\; \mathrm{IG}\!\left(\frac{a-x_0}{\mu},\;\frac{(a-x_0)^2}{\sigma^2}\right)$$
+
+La RUL tiene distribucion \textit{Gaussiana Inversa}. No es un numero puntual: es una distribucion completa. Eso da intervalos de confianza sobre el pronostico, que es lo que se necesita para decidir con riesgo cuantificado.
+\end{mathbox}
+
+La deriva $\mu$ no es un parametro libre: la fija la fisica. En frenos, $\mu = k\,\langle p\,v \rangle$ (Archard). En el DPF, $\mu$ es la tasa de acumulacion de hollin. La fisica provee el prior; los datos ajustan el residuo y la incertidumbre $\sigma$.
+
+\textbf{Proceso Gamma.} Para desgaste estrictamente monotono (la balata no se autorepara), el proceso correcto tiene incrementos no negativos: $\Delta X \sim \mathrm{Gamma}(\alpha\Delta t,\;\lambda)$. La confiabilidad en $t$ es la funcion gamma incompleta regularizada evaluada en el umbral $a$.
+
+\section{Estimacion online: de Fokker--Planck a filtros de particulas}
+
+Cada trama de telemetria, cada reparacion, debe actualizar las distribuciones sin recalcular todo desde cero. El filtro bayesiano recursivo opera en dos pasos. La propagacion de la densidad de creencia $p(x,t)$ obedece la \textbf{ecuacion de Fokker--Planck}:
+
+\begin{mathbox}
+$$\frac{\partial p}{\partial t} = -\frac{\partial}{\partial x}[\mu\,p] + \frac{1}{2}\frac{\partial^2}{\partial x^2}[\sigma^2 p]$$
+
+La actualizacion por observacion $y$ es Bayes puntual: $p(x_t\mid y_{1:t}) \propto p(y_t\mid x_t)\,p(x_t\mid y_{1:t-1})$.
+Propagar la densidad con Fokker--Planck y corregirla con Bayes en cada observacion: eso es el filtro de particulas.
+\end{mathbox}
+
+La arquitectura opera en capas a distinta cadencia; ninguna recalcula todo:
+
+\medskip
+\begin{center}
+\small
+\begin{tabular}{@{}p{3.5cm}p{3.5cm}p{3.5cm}p{2.4cm}@{}}
+\toprule
+\textbf{Capa} & \textbf{Que estima} & \textbf{Metodo} & \textbf{Cadencia} \\
+\midrule
+Filtrado de estado & RUL de cada unidad & KF / UKF / particulas & por evento \\
+Eventos recurrentes & factor de reparacion $q$ & GRP / Kijima & por reparacion \\
+Hiperparametros de flota & $\beta,\eta,\tau_\bullet,\boldsymbol\gamma$ & HMC / SG-MCMC & nocturno \\
+Despliegue (unidad nueva) & posterior en tiempo real & red amortizada (SBI) & instantaneo \\
+Politica de intervencion & accion optima & POMDP / RL & por decision \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+El factor de reparacion $q$ es estimable de los datos mediante la edad virtual de Kijima: tras la $i$-esima intervencion, $v_i = v_{i-1} + q\,x_i$. Con $q=0$ la reparacion es perfecta; con $q=1$ es minima; con $q > 1$ la pieza queda peor que antes. La calidad del taller se vuelve un parametro del modelo, identificable de la historia de reincidencia.
+
+\section{Modelo jerarquico bayesiano de flota multimarca}
+
+El requerimiento de cualquier operador de flota real es que el sistema funcione desde el primer dia en cualquier marca, sin millones de datos por tipo de vehiculo. La solucion matematica es \textbf{partial pooling bayesiano} en tres niveles anidados:
+
+\begin{mathbox}
+$$\ln\eta_i = \underbrace{\alpha_{c,k}}_{\text{clase}} + \underbrace{\delta_{c,k,m}}_{\text{marca}} + \underbrace{\zeta_{c,k,m,j}}_{\text{modelo}} + \boldsymbol\gamma_c^\top\mathbf{x}_i$$
+$$\alpha_{c,k} \sim \mathcal{N}(\mu_c,\;\tau_{\text{clase}}^2), \quad \delta_{c,k,m} \sim \mathcal{N}(0,\;\tau_{\text{marca}}^2), \quad \zeta_{c,k,m,j} \sim \mathcal{N}(0,\;\tau_{\text{modelo}}^2)$$
+\end{mathbox}
+
+El encogimiento opera en cascada: una marca con pocos datos toma fuerza prestada de su clase, luego de la media global. Las $\tau_\bullet$ ---estimadas de los datos--- controlan cuanto flujo de informacion hay entre niveles: si las marcas de una clase se parecen, se agrupan fuerte; si difieren, el modelo lo detecta y desagrupa. No hay eleccion manual de cuanto pooling aplicar.
+
+\medskip
+Por que funciona entre clases tan distintas como camion pesado, vehiculo ligero y motocicleta: \textbf{la fisica de falla es la misma} (Archard, Miner, Weibull, Lundberg--Palmgren); solo cambian los parametros. Las \textit{features} fisicas $\mathbf{x}$ transfieren entre clases aunque las marcas no se parezcan. La fisica es el prior estructural que regulariza la inferencia HMC (\texttt{Turing.jl}).
+
+\medskip
+Cuando una unidad tiene menos sensores ---OBD vs. J1939, o una motocicleta sin CAN--- la covariable faltante se trata como variable latente y se marginaliza:
+$$p(T_i \mid \mathbf{x}_{i,\text{obs}}) = \int p(T_i \mid \mathbf{x}_{i,\text{obs}},\, x_{i,\text{mis}})\,p(x_{i,\text{mis}}\mid k)\,dx_{i,\text{mis}}$$
+
+Una unidad con menos informacion produce un posterior predictivo mas ancho. La incertidumbre se propaga correctamente a la RUL y al umbral de decision. No hay que imputar a mano ni descartar unidades incompletas.
+
+\section{Decision optima: cuando intervenir y cuanto cuesta no hacerlo}
+
+\subsection{Intervalo optimo de reemplazo (teorema de renovacion-recompensa)}
+
+Con costo preventivo $c_p$ y correctivo $c_f > c_p$, la tasa de costo a largo plazo bajo politica de reemplazo por edad $T$:
+
+\begin{mathbox}
+$$g(T) = \frac{c_p\,R(T) + c_f\,[1-R(T)]}{\displaystyle\int_0^T R(t)\,dt}$$
+
+La condicion de optimalidad $g'(T^*) = 0$ reduce a:
+$$h(T^*)\int_0^{T^*} R(t)\,dt - F(T^*) = \frac{c_p}{c_f - c_p}$$
+
+El lado izquierdo crece con $T$ \textbf{solo si $h$ es creciente} ($\beta > 1$). Por tanto existe $T^* < \infty$ si y solo si la pieza envejece. Para fallas aleatorias ($\beta = 1$), el reemplazo preventivo no ayuda. Esta es una regla de diseno dura: el mantenimiento por calendario solo tiene sentido para modos de desgaste.
+\end{mathbox}
+
+\subsection{Umbral de alerta sensible al costo}
+
+El modelo entrega $p = P(\text{falla en el horizonte} \mid \mathbf{x})$. La alerta optima es:
+\begin{mathbox}
+$$p > p^* = \frac{c_{\mathrm{FP}}}{c_{\mathrm{FP}} + c_{\mathrm{FN}}}$$
+
+$p^*$ no es 0.5. En el reto de Scania APS, $c_{\mathrm{FN}} = 500$, $c_{\mathrm{FP}} = 10$, de modo que $p^* \approx 2\%$: se alerta con apenas 2\% de probabilidad de falla porque dejarla pasar es 50 veces mas caro. La metrica de entrenamiento correcta no es exactitud: es el costo monetario esperado.
+\end{mathbox}
+
+\section{El flujo completo}
+
+Todo lo anterior converge en una cadena instrumentada. El dato entra crudo del bus CAN; la decision de intervencion sale del otro lado con incertidumbre cuantificada:
+
+\begin{greenbox}
+\begin{center}
+\small
+$\underbrace{a(t),\;v(t),\;\text{J1939/OBD}}_{\text{sensor}} \;\xrightarrow{\;\text{fisica (III)}\;} \;\underbrace{E_{\mathrm{freno}},\;D_\beta,\;L_{10},\;\Delta P_{\mathrm{DPF}}}_{\text{features fisicas}} \;\xrightarrow{\;\text{Cox/Weibull (IV)}\;} \;\underbrace{h(t\mid\mathbf{x}),\;R(t\mid\mathbf{x})}_{\text{supervivencia}} \;\xrightarrow{\;\text{filtro (VI)}\;} \;\underbrace{\mathrm{RUL}(t),\;p}_{\text{pronostico}} \;\xrightarrow{\;\text{VIII}\;} \;\underbrace{T^*,\;\text{alerta}}_{\text{decision}}$
+\end{center}
+\end{greenbox}
+
+\medskip
+El hardware de captura (Orange Pi Zero 3 con interfaz J1939 y IMU MPU6050) esta en operacion. El stack de modelado esta en Julia: \texttt{Turing.jl} para HMC jerarquico, \texttt{DifferentialEquations.jl} para los procesos de degradacion, \texttt{LowLevelParticleFilters.jl} para filtrado secuencial. La validacion se hace contra datasets publicos (Scania APS, Component X, NASA C-MAPSS) antes de tener datos propios maduros, para que los parametros estimados tengan un benchmark externo objetivo.
+
+\begin{notebox}
+\textbf{Lo que la combinacion habilita.}
+Yaup AI tiene escala de producto, distribucion e ingenieria de software madura.
+Lo que no tiene es la cadena fisica~$\to$~estadistica~$\to$~decision que convierte telemetria en RUL confiable con incertidumbre cuantificada.
+Esa cadena es lo que nosotros construimos.
+La conversacion es sobre como las dos piezas encajan.
+\end{notebox}
+
+\vspace{0.8cm}
+\begin{center}
+{\color{bordercol}\rule{0.35\textwidth}{0.5pt}}\\[0.35cm]
+{\small\color{muted} Junio 2026 \quad|\quad Confidencial}
+\end{center}
+
+\end{document}

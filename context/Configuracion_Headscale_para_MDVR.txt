@@ -1,0 +1,329 @@
+# ===================================================================
+# CONFIGURACIÓN HEADSCALE TRACKER - TAGS Y ROLES GRANULARES
+# ===================================================================
+
+# 1. Crear namespace específico para tracking (no interfiere con ws2net)
+headscale namespaces create tracker
+
+# 2. Verificar que no interfiera con ws2net
+headscale namespaces list
+
+# 3. Crear pre-auth keys para diferentes roles
+# MDVR Devices (no se comunican entre ellos)
+headscale --namespace tracker preauthkeys create --reusable --expiration 24h --tags tag:mdvr-device
+
+# Administradores (acceso total)
+headscale --namespace tracker preauthkeys create --reusable --expiration 24h --tags tag:admin
+
+# Usuarios familiares (acceso limitado)
+headscale --namespace tracker preauthkeys create --reusable --expiration 24h --tags tag:family-user
+
+# Servidor tracker
+headscale --namespace tracker preauthkeys create --reusable --expiration 24h --tags tag:tracker-server
+
+# ===================================================================
+# CONFIGURACIÓN ACL GRANULAR - /etc/headscale/acl.yaml
+# ===================================================================
+
+# Backup de ACL actual
+sudo cp /etc/headscale/acl.yaml /etc/headscale/acl.yaml.backup
+
+# Crear nueva configuración ACL
+cat > /etc/headscale/acl.yaml << 'EOF'
+{
+  "tagOwners": {
+    // Dispositivos MDVR - solo el servidor puede gestionarlos
+    "tag:mdvr-device": ["tracker"],
+    
+    // Servidor tracker - puede comunicarse con todos
+    "tag:tracker-server": ["tracker"],
+    
+    // Administradores - pueden acceder a todo
+    "tag:admin": ["tracker"],
+    
+    // Usuarios familiares - acceso limitado
+    "tag:family-user": ["tracker"]
+  },
+  
+  "groups": {
+    "group:tracker-namespace": ["tracker"],
+    "group:administrators": ["tag:admin"],
+    "group:family-users": ["tag:family-user"],
+    "group:mdvr-devices": ["tag:mdvr-device"],
+    "group:tracker-servers": ["tag:tracker-server"]
+  },
+  
+  "acls": [
+    // ===================================================================
+    // REGLAS PARA DISPOSITIVOS MDVR
+    // ===================================================================
+    
+    // MDVR devices pueden conectarse SOLO al servidor tracker
+    {
+      "action": "accept",
+      "src": ["tag:mdvr-device"],
+      "dst": ["tag:tracker-server:8080", "tag:tracker-server:6604", "tag:tracker-server:443", "tag:tracker-server:80"]
+    },
+    
+    // MDVR devices NO pueden comunicarse entre ellos (seguridad)
+    {
+      "action": "deny",
+      "src": ["tag:mdvr-device"],
+      "dst": ["tag:mdvr-device:*"]
+    },
+    
+    // ===================================================================
+    // REGLAS PARA ADMINISTRADORES
+    // ===================================================================
+    
+    // Administradores pueden acceder a TODO
+    {
+      "action": "accept",
+      "src": ["tag:admin"],
+      "dst": ["group:tracker-namespace:*"]
+    },
+    
+    // Administradores pueden SSH a cualquier servidor
+    {
+      "action": "accept",
+      "src": ["tag:admin"],
+      "dst": ["tag:tracker-server:22"]
+    },
+    
+    // ===================================================================
+    // REGLAS PARA USUARIOS FAMILIARES
+    // ===================================================================
+    
+    // Usuarios familiares solo pueden acceder a la web app
+    {
+      "action": "accept",
+      "src": ["tag:family-user"],
+      "dst": ["tag:tracker-server:443", "tag:tracker-server:80"]
+    },
+    
+    // Usuarios familiares NO pueden acceder a puertos de administración
+    {
+      "action": "deny",
+      "src": ["tag:family-user"],
+      "dst": ["tag:tracker-server:22", "tag:tracker-server:8080"]
+    },
+    
+    // ===================================================================
+    // REGLAS PARA SERVIDOR TRACKER
+    // ===================================================================
+    
+    // Servidor puede responder a todos los clientes autorizados
+    {
+      "action": "accept",
+      "src": ["tag:tracker-server"],
+      "dst": ["tag:admin:*", "tag:family-user:*", "tag:mdvr-device:*"]
+    },
+    
+    // ===================================================================
+    // REGLAS DE CONECTIVIDAD BÁSICA
+    // ===================================================================
+    
+    // Permitir ping/conectividad básica para troubleshooting (solo admins)
+    {
+      "action": "accept",
+      "src": ["tag:admin"],
+      "dst": ["tag:tracker-server:*"]
+    }
+  ],
+  
+  "ssh": [
+    // Solo administradores pueden hacer SSH
+    {
+      "action": "accept",
+      "src": ["tag:admin"],
+      "dst": ["tag:tracker-server"],
+      "users": ["root", "ubuntu", "tracker"]
+    }
+  ],
+  
+  // ===================================================================
+  // CONFIGURACIÓN DE REDES (NO INTERFIERE CON ws2net)
+  // ===================================================================
+  "autoApprovers": {
+    "routes": {
+      "100.65.0.0/16": ["tag:admin"],  // Red diferente a ws2net
+      "100.66.0.0/16": ["tag:tracker-server"]
+    }
+  }
+}
+EOF
+
+# ===================================================================
+# SCRIPTS DE GESTIÓN POR ROLES
+# ===================================================================
+
+# Script para agregar dispositivo MDVR
+cat > /opt/add-mdvr-device.sh << 'EOF'
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "Uso: $0 <device-id>"
+    echo "Ejemplo: $0 MDVR001"
+    exit 1
+fi
+
+DEVICE_ID=$1
+NAMESPACE="tracker"
+
+echo "🚗 Agregando dispositivo MDVR: $DEVICE_ID"
+
+# Generar pre-auth key para dispositivo MDVR
+PREAUTH_KEY=$(headscale --namespace $NAMESPACE preauthkeys create --reusable --expiration 72h --tags tag:mdvr-device | grep -o '[a-z0-9]*')
+
+echo "📋 Configuración para dispositivo MDVR $DEVICE_ID:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔧 En el dispositivo MDVR, configurar:"
+echo ""
+echo "   Servidor: https://tracker.tu-dominio.com"
+echo "   Headscale: --login-server=https://headscale.tu-dominio.com"
+echo "   AuthKey: $PREAUTH_KEY"
+echo "   Hostname: $DEVICE_ID"
+echo ""
+echo "📱 Comando Tailscale (si aplica):"
+echo "   tailscale up --login-server=https://headscale.tu-dominio.com --authkey=$PREAUTH_KEY --hostname=$DEVICE_ID"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🔒 Este dispositivo:"
+echo "   ✅ PUEDE conectarse al servidor tracker"
+echo "   ❌ NO PUEDE comunicarse con otros dispositivos MDVR"
+echo "   ❌ NO PUEDE ser accedido directamente por usuarios"
+echo ""
+echo "⏰ Esta configuración expira en 72 horas"
+
+EOF
+
+# Script para agregar administrador
+cat > /opt/add-admin-user.sh << 'EOF'
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "Uso: $0 <admin-name>"
+    echo "Ejemplo: $0 admin-juan"
+    exit 1
+fi
+
+ADMIN_NAME=$1
+NAMESPACE="tracker"
+
+echo "👨‍💼 Agregando administrador: $ADMIN_NAME"
+
+# Generar pre-auth key para administrador
+PREAUTH_KEY=$(headscale --namespace $NAMESPACE preauthkeys create --reusable --expiration 24h --tags tag:admin | grep -o '[a-z0-9]*')
+
+echo "📋 Configuración para administrador $ADMIN_NAME:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "1. Instalar Tailscale:"
+echo "   curl -fsSL https://tailscale.com/install.sh | sh"
+echo ""
+echo "2. Conectar como administrador:"
+echo "   sudo tailscale up --login-server=https://headscale.tu-dominio.com --authkey=$PREAUTH_KEY --hostname=$ADMIN_NAME"
+echo ""
+echo "3. Acceso completo a:"
+echo "   🌐 Panel web: https://tracker.tu-dominio.com/admin"
+echo "   🖥️ SSH servidor: ssh admin@tracker-server"
+echo "   📊 Todos los MDVR y métricas"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🔑 Permisos de administrador:"
+echo "   ✅ Acceso total al sistema"
+echo "   ✅ SSH al servidor"
+echo "   ✅ Ver todos los dispositivos MDVR"
+echo "   ✅ Gestionar usuarios familiares"
+echo "   ✅ Acceso a logs y métricas"
+echo ""
+echo "⏰ Esta configuración expira en 24 horas"
+
+EOF
+
+# Script para agregar usuario familiar
+cat > /opt/add-family-user.sh << 'EOF'
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+    echo "Uso: $0 <user-name> [mdvr-devices]"
+    echo "Ejemplo: $0 mama-tablet MDVR001,MDVR003"
+    exit 1
+fi
+
+USER_NAME=$1
+ALLOWED_DEVICES=${2:-"ALL"}  # Por defecto puede ver todos
+NAMESPACE="tracker"
+
+echo "👩‍👧‍👦 Agregando usuario familiar: $USER_NAME"
+
+# Generar pre-auth key para usuario familiar
+PREAUTH_KEY=$(headscale --namespace $NAMESPACE preauthkeys create --reusable --expiration 24h --tags tag:family-user | grep -o '[a-z0-9]*')
+
+echo "📋 Configuración para usuario familiar $USER_NAME:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "1. Instalar Tailscale:"
+echo "   curl -fsSL https://tailscale.com/install.sh | sh"
+echo ""
+echo "2. Conectar a la red familiar:"
+echo "   sudo tailscale up --login-server=https://headscale.tu-dominio.com --authkey=$PREAUTH_KEY --hostname=$USER_NAME"
+echo ""
+echo "3. Acceder al tracker:"
+echo "   🌐 App familiar: https://tracker.tu-dominio.com/family"
+echo "   📱 Dispositivos permitidos: $ALLOWED_DEVICES"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "🔒 Permisos de usuario familiar:"
+echo "   ✅ Ver ubicación de vehículos asignados"
+echo "   ✅ Recibir notificaciones"
+echo "   ❌ NO puede acceder a administración"
+echo "   ❌ NO puede SSH al servidor"
+echo "   ❌ NO puede ver todos los dispositivos"
+echo ""
+echo "⏰ Esta configuración expira en 24 horas"
+
+# Guardar asignación de dispositivos
+echo "$USER_NAME:$ALLOWED_DEVICES" >> /opt/tracker/family-permissions.txt
+
+EOF
+
+# Hacer scripts ejecutables
+chmod +x /opt/add-mdvr-device.sh
+chmod +x /opt/add-admin-user.sh
+chmod +x /opt/add-family-user.sh
+
+# Crear enlaces simbólicos
+ln -sf /opt/add-mdvr-device.sh /usr/local/bin/add-mdvr-device
+ln -sf /opt/add-admin-user.sh /usr/local/bin/add-admin-user
+ln -sf /opt/add-family-user.sh /usr/local/bin/add-family-user
+
+# ===================================================================
+# COMANDOS DE GESTIÓN ÚTILES
+# ===================================================================
+
+# Ver nodos por tag
+# headscale --namespace tracker nodes list --tags tag:mdvr-device
+# headscale --namespace tracker nodes list --tags tag:admin
+# headscale --namespace tracker nodes list --tags tag:family-user
+
+# Eliminar nodo específico
+# headscale --namespace tracker nodes delete <node-id>
+
+# Ver rutas por tag
+# headscale routes list --namespace tracker
+
+# Reload configuración ACL
+# headscale acl reload
+
+# Ver logs filtrados
+# journalctl -u headscale -f | grep tracker
+
+echo "✅ Configuración de tags y roles completada!"
+echo ""
+echo "📋 Comandos disponibles:"
+echo "   🚗 add-mdvr-device <device-id>     - Agregar dispositivo MDVR"
+echo "   👨‍💼 add-admin-user <admin-name>     - Agregar administrador"
+echo "   👩‍👧‍👦 add-family-user <user-name>    - Agregar usuario familiar"
+echo ""
+echo "🔧 Para aplicar cambios:"
+echo "   headscale acl reload"
