@@ -1,3 +1,6 @@
+-- ⛔ SUPERSEDED (2026-06-18): este esquema (estilo WS-A, PKs text, J1939, formato largo) NO encaja con
+--    la BD real de Tracker (tracker_prod: TimescaleDB, UUID, multi-tenant, obd_data ancho OBD-II).
+--    Ver docs/Integracion_BD_Tracker.md para el diseño de integración correcto. No aplicar esta migración.
 -- ============================================================================
 -- WS-A — Migración 003: ingesta OBD/CAN + entrada/salida del ESTIMADOR.
 --
