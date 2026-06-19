@@ -194,3 +194,19 @@ navegador los 3 PDF clave y fijar las tablas exactas — (1) FMCSA *Crash Cost M
 (costos $49,398 / $326,810 / $15,230,414), (2) FMCSA *LTCCS Analysis Brief* (10% / 29% / relative risk),
 (3) ATRI *Understanding the Impact of Nuclear Verdicts* (mediana $21M→$51M). Alternativa: habilitar un
 fetch autenticado/MCP que no reciba 403.
+
+### ✅ Verificación contra PDF primario (PDFs en `References/`)
+El usuario descargó los PDF; verificación carácter-a-carácter contra la fuente primaria:
+
+| Cifra | Documento | Fuente primaria | Veredicto |
+|---|---|---|---|
+| Crash sin lesión (large truck, USD 2023) | $49,398 | FMCSA *Crash Cost Methodology 2025*, **Tabla 3, p.4** | **CONFIRMADO** |
+| Crash con lesión | $326,810 | idem, Tabla 3, p.4 | **CONFIRMADO** |
+| Crash fatal | $15,230,414 | idem, Tabla 3, p.4 | **CONFIRMADO** |
+
+Referencia exacta: FMCSA *Crash Cost Methodology*, "Table 3: Cost per Crash in 2023 Dollars", columna
+Large Trucks. (Bus y promedio CMV difieren: $48,176/$383,569/$15,460,033 y $49,261/$330,946/$15,216,588.)
+
+**Pendiente de blindar** (PDFs ya en `References/`; sin contexto para leerlos en esta sesión):
+FMCSA *LTCCS Analysis Brief* (10%/87%/3%; frenos 29% associated factor; relative risk 2.7×/2.5×/56×) y
+ATRI *Nuclear Verdicts* ($21M→$51M). Próxima sesión: leer esos 2 PDF y completar la tabla.
