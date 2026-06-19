@@ -157,12 +157,12 @@ function life_records(pl)
         end
         if fday === nothing
             push!(recs, (component_type=pl.component, class=pl.class, brand=pl.brand,
-                  model=pl.model, route_severity=pl.z, entry_age=a0_h,
+                  model=pl.model, vehicle_id=pl.vehicle_id, route_severity=pl.z, entry_age=a0_h,
                   exit_age=a0_h + (pl.cum_h[end] - cumh0), status=0))
             break
         end
         push!(recs, (component_type=pl.component, class=pl.class, brand=pl.brand,
-              model=pl.model, route_severity=pl.z, entry_age=a0_h,
+              model=pl.model, vehicle_id=pl.vehicle_id, route_severity=pl.z, entry_age=a0_h,
               exit_age=a0_h + (pl.cum_h[fday + 1] - cumh0), status=pl.mode_id))
         (!pl.recurrent || fday >= pl.ndays) && break
         di = fday; D0 = pl.Dcum[fday + 1]; cumh0 = pl.cum_h[fday + 1]
