@@ -46,8 +46,8 @@ No es una hipótesis. En el **International Roadcheck 2024** de la **CVSA** (Com
 Alliance) —48,761 inspecciones en Canadá, México y Estados Unidos, del 14 al 16 de mayo— **el 23.2 %
 de los vehículos inspeccionados fue puesto fuera de servicio** (OOS) por un defecto: prácticamente
 **uno de cada cuatro**. Y de todas las violaciones OOS de vehículo, las dos primeras causas fueron
-justamente los dos componentes de mayor severidad de cola (§2-3): **frenos de servicio defectuosos
-(26.5 %)** y **llantas (22.1 %)**. Una porción material de la flota está rodando, en cualquier momento
+justamente los dos componentes que reaparecen como factores de choque asociados al vehículo más
+prevalentes (§2): **frenos de servicio defectuosos (26.5 %)** y **llantas (22.1 %)**. Una porción material de la flota está rodando, en cualquier momento
 dado, con un defecto que una inspección habría marcado.
 
 Esto importa porque define el espacio del problema: **el defecto no es un evento raro, es un estado
@@ -378,11 +378,12 @@ doble. Por eso "evitar un evento catastrófico cada varios años paga décadas d
 Maintenance BASIC eleva la tasa de choque **+65 %** (§2.3), basta con que el predictivo mueva a la
 flota hacia un perfil de cumplimiento limpio para actuar sobre ese margen en valor esperado.
 
-La recomendación de despliegue se desprende del análisis: **priorizar el mantenimiento basado en
-condición (CBM) en los componentes de alta severidad —frenos, llantas, wheel-end—**, donde la
-combinación de prevalencia del defecto y costo de cola es máxima, y **calibrar los parámetros de
-probabilidad $P$ con datos de la propia flota** mediante un piloto interno que convierta las cotas
-conservadoras de este documento en cifras propias.
+La recomendación de despliegue se desprende del análisis: **priorizar los componentes de alta
+severidad —frenos, llantas, wheel-end—**, donde la combinación de prevalencia del defecto y costo de
+cola es máxima, aplicando **mantenimiento basado en condición (CBM) donde hay precursor a bordo**
+(frenos) y **política basada en vida/estadística donde no lo hay** (llantas, wheel-end) —tal como
+hace el motor (§8)—, y **calibrar los parámetros de probabilidad $P$ con datos de la propia flota**
+mediante un piloto interno que convierta las cotas conservadoras de este documento en cifras propias.
 
 ---
 
