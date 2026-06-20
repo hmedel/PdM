@@ -231,10 +231,12 @@ Nota fina confirmada: frenos = 170% más probable de recibir la causa crítica �
 | ~~mediana $21 M (2020) → $51 M (2024)~~ | **mediana nuclear verdict $36 M en 2022, ~50% sobre la mediana de 2013** | **CORREGIDO** |
 | ~~casos +3.7%/año~~ | demandas a transportistas **+5.7%/año (2014–2023)** | **CORREGIDO** |
 | (no estaba) | share de verdicts **>$50 M subió 6.4 puntos** | **AÑADIDO (confirmado)** |
-| primas +12.5% (2023) | NO aparece en este PDF (fuente secundaria) | **NO VERIFICABLE aquí** |
+| primas de seguro +12.5% (2023), a $0.099/milla | **ATRI *Operational Costs of Trucking 2024*** (datos 2023): primas +12.5% a $0.099/mi, el MAYOR incremento de categoría ese año (tras 2 años sin cambio). Corroborado por múltiples fuentes que citan el primario ATRI (Truck News, TT News, ICSA). | **CONFIRMADO** (search-corroborado vs ATRI; no byte-a-byte: el PDF de Operational Costs no está en References/) |
 
 > El "$21 M→$51 M" provenía de un reporte ATRI distinto (*Understanding the Impact of Nuclear Verdicts*),
 > no del PDF descargado. Las cifras del cuerpo del informe ya fueron corregidas a las del PDF primario.
-> **Las 6 cifras ancla del caso de negocio quedan ahora confirmadas/corregidas contra fuente primaria**
-> (FMCSA Crash Cost Tabla 3 + LTCCS Tablas 1-2 + ATRI/CCJ). Pendiente sólo: primas de seguro (+12.5%),
-> que requiere su fuente específica.
+> **TODAS las cifras ancla del caso de negocio quedan confirmadas/corregidas contra fuente primaria**
+> (FMCSA Crash Cost Tabla 3 + LTCCS Tablas 1-2 + ATRI/CCJ nuclear verdicts + ATRI Operational Costs 2024
+> para primas +12.5%). No quedan cabos sueltos de verificación en el cuerpo del informe; el único matiz es
+> que las primas y los costos de varado/operación están search-corroborados vs ATRI (no byte-a-byte, sus PDF
+> no están en References/), mientras los 3 PDF descargados (FMCSA Crash Cost, LTCCS, ATRI Nuclear Verdicts) sí.
