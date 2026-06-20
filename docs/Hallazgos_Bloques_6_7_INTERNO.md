@@ -54,13 +54,21 @@ aseguradora/proveedor/blog de industria (interesado, tómese como ilustrativo).
   ATRI (American Transportation Research Institute), investigación de costos de seguro ·
   https://truckingresearch.org/about-atri/atri-research/economic-analysis/ · [AUTORITATIVO]
 
-- **Liga con el dato confirmado (ATRI, primas +12.5% en 2023):** en 2023 las primas
-  subieron **12.5% a 9.9¢/milla**; en 2024 alcanzaron **récord ~10.2¢/milla**
-  (+~12.1%/+18.6% acumulado 2021–2024) — mientras las tasas de choque de pesados CAYERON
-  ~2.6%. El alza la empuja el costo por siniestro (nuclear verdicts +52%, physical damage
-  +14.9%), no la frecuencia. · ATRI, "An Analysis of the Operational Costs of Trucking"
-  (2024 / 2025 Update) · https://truckingresearch.org/about-atri/atri-research/economic-analysis/
-  · [AUTORITATIVO]
+- **Liga con el dato confirmado (ATRI, primas +12.5% en 2023):** el único dato **confirmado**
+  es 2023: las primas subieron **12.5% a 9.9¢/milla** (ATRI *Operational Costs of Trucking
+  2024*, datos 2023). Coberturas posteriores citan un **récord ~10.2¢/milla en 2024**
+  (search-corroborado, **NO confirmado** contra el primario; el incremento 2024 sería ~+3%
+  YoY sobre 9.9¢, no doble dígito). El alza la empuja el **costo por siniestro**, no la
+  frecuencia: la mediana de *nuclear verdicts* subió **~50% sobre 2013 a $36 M (2022)** y las
+  demandas crecen **+5.7%/año** (cifras CONFIRMADAS contra el PDF ATRI Nuclear Verdicts en
+  `References/`), mientras las tasas de choque de pesados cayeron. · ATRI, "An Analysis of the
+  Operational Costs of Trucking" (2024 / 2025 Update) + ATRI Nuclear Verdicts ·
+  https://truckingresearch.org/about-atri/atri-research/economic-analysis/ · [AUTORITATIVO]
+  (2023 +12.5% y verdicts confirmados; el ~10.2¢/2024 es [COMERCIAL]/search-corroborado)
+
+  > Nota de verificación: cifras como "verdicts +52%" o "physical damage +14.9%" que circulan
+  > en coberturas NO están en el set confirmado contra PDF primario; usar en su lugar las
+  > ancla confirmadas ($36 M / ~50% sobre 2013 / +5.7%/año / share >$50 M +6.4 pts).
 
   Implicación para el caso económico PdM: el ahorro vía seguro NO viene de "menos choques"
   (la frecuencia ya bajó) sino de **moverse de cuartil de riesgo** (BASIC limpio + telemática
@@ -92,9 +100,13 @@ aseguradora/proveedor/blog de industria (interesado, tómese como ilustrativo).
   Terrestre en Zonas Urbanas y Suburbanas (ATUS) ·
   https://www.inegi.org.mx/rnm/index.php/catalog/903/ · [AUTORITATIVO]
 
-- **Causa: factor humano domina (~90% en carga; ~88–94% en red federal).** En ATUS 2023,
-  **25,921** de los accidentes con pesados de carga fueron atribuidos al conductor. En la red
-  carretera federal (IMT) el factor humano concentra ~**88.8%** (2018). Implicación: en
+- **Causa: factor humano domina (~88–94% según fuente/denominador).** En ATUS 2023,
+  **25,921** accidentes con pesados de carga fueron atribuidos al conductor. En la red
+  carretera federal (IMT) el factor humano concentra ~**88.8%** (2018). ⚠️ **Cuidado con el
+  denominador:** los 27,594 de la línea anterior son *vehículos involucrados*, no *accidentes*;
+  NO dividir 25,921/27,594 (mezcla unidades distintas). El porcentaje de factor humano debe
+  tomarse sobre el nº de accidentes con pesado de carga reportado por INEGI, no sobre el conteo
+  de vehículos involucrados. Implicación: en
   México el c_f por **falla mecánica del vehículo es minoritario en frecuencia** — el caso
   PdM debe argumentarse por severidad/costo y por el efecto de la flota envejecida, no por
   participación porcentual de la falla. · INEGI ATUS 2023 / IMT Anuario carreteras federales
