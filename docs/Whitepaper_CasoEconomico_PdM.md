@@ -42,12 +42,13 @@ momento lo **autoritativo** (agencias federales, estudios revisados por pares) d
 
 ## 1. El problema: una fracción de dos dígitos de la flota circula con defectos
 
-No es una hipótesis: cada año, las inspecciones coordinadas de la **CVSA** (Commercial Vehicle Safety
-Alliance) sacan de circulación a un porcentaje de dos dígitos de los vehículos inspeccionados por
-defectos *out-of-service* (OOS). Los sistemas de **frenos** concentran de forma recurrente la mayor
-proporción de violaciones OOS de vehículo, y las **llantas/ruedas** aparecen sistemáticamente entre
-las primeras causas. Una porción material de la flota está rodando, en cualquier momento dado, con un
-defecto que una inspección habría marcado.
+No es una hipótesis. En el **International Roadcheck 2024** de la **CVSA** (Commercial Vehicle Safety
+Alliance) —48,761 inspecciones en Canadá, México y Estados Unidos, del 14 al 16 de mayo— **el 23.2 %
+de los vehículos inspeccionados fue puesto fuera de servicio** (OOS) por un defecto: prácticamente
+**uno de cada cuatro**. Y de todas las violaciones OOS de vehículo, las dos primeras causas fueron
+justamente los dos componentes de mayor severidad de cola (§2-3): **frenos de servicio defectuosos
+(26.5 %)** y **llantas (22.1 %)**. Una porción material de la flota está rodando, en cualquier momento
+dado, con un defecto que una inspección habría marcado.
 
 Esto importa porque define el espacio del problema: **el defecto no es un evento raro, es un estado
 prevalente**. La pregunta económica no es "¿puede fallar un camión?" sino "¿cuánto cuesta, en
@@ -347,6 +348,29 @@ solo evento catastrófico cada varios años —un fatal de $15.23 M o un veredic
 décadas de programa predictivo en toda la flota.** Y en una flota envejecida como la mexicana
 (~19.3 años de edad media), el deterioro acumulado hace el argumento más fuerte, no más débil.
 
+### Un cálculo de retorno (ilustrativo)
+
+Las cifras siguientes son **ilustrativas** —sirven para fijar el orden de magnitud; el piloto de
+calibración las sustituye por las de la flota propia. Supongamos una flota de **100 camiones Clase 8**
+de línea, ~100,000 mi/año cada uno, y un programa PdM a **$40/camión/mes = $480/camión/año**
+($48,000/año para la flota; rango típico de suscripción telemática + analítica $20–50/camión/mes).
+
+**Piso del retorno — solo con el término de varado, sin contar un solo accidente.** Con la MMBRR de
+~31,638 mi (§4), cada camión sufre ~**3.2 descomposturas en ruta al año** (100,000 ÷ 31,638). A
+~$522 de reparación por evento (§4) más unas horas de tiempo parado a $90.89/h (§6), cada evento
+cuesta del orden de **~$1,000** de forma conservadora (excluye grúa pesada y penalización por
+entrega tardía) → **~$3,200/camión/año** en descomposturas. El predictivo recorta las descomposturas
+**−70–75 %** (DOE/FEMP, §7): ahorro ≈ **$2,200/camión/año**, es decir **~4.6× el costo del programa**
+—y para la flota, ~$220,000/año de ahorro frente a $48,000/año de costo— **antes de tocar el término
+de accidente.**
+
+**La cola es pura ganancia adicional.** Un solo choque fatal evitado ($15.23 M) equivale a **más de
+300 años** del programa de esta flota ($15.23 M ÷ $48,000 ≈ 317); un veredicto de $36 M, más del
+doble. Por eso "evitar un evento catastrófico cada varios años paga décadas de programa" es, si acaso,
+**una afirmación conservadora**. Y no hace falta evitar *todos* los choques: dado que un mal Vehicle
+Maintenance BASIC eleva la tasa de choque **+65 %** (§2.3), basta con que el predictivo mueva a la
+flota hacia un perfil de cumplimiento limpio para actuar sobre ese margen en valor esperado.
+
 La recomendación de despliegue se desprende del análisis: **priorizar el mantenimiento basado en
 condición (CBM) en los componentes de alta severidad —frenos, llantas, wheel-end—**, donde la
 combinación de prevalencia del defecto y costo de cola es máxima, y **calibrar los parámetros de
@@ -385,7 +409,9 @@ o **[C]** comerciales/de industria (interesadas; ilustrativas).
    https://www.sciencedirect.com/science/article/pii/S0951832021003835
 10. **[A]** *Insights into motor carrier crashes… FMCSA inspection violations*, *Accident Analysis &
     Prevention* (revisado por pares). https://www.sciencedirect.com/science/article/abs/pii/S0001457521001366
-11. **[A]** CVSA — *International Roadcheck* (datos OOS anuales, frenos/llantas).
+11. **[A]** CVSA — *2024 International Roadcheck Results* (48,761 inspecciones; 23.2 % de vehículos
+    OOS; frenos de servicio 26.5 % y llantas 22.1 % de las violaciones OOS de vehículo).
+    https://cvsa.org/news/2024-roadcheck-results/
 12. **[A]** INEGI — *Estadística de Accidentes de Tránsito Terrestre en Zonas Urbanas y Suburbanas
     (ATUS), 2023* (27,594 pesados de carga). https://www.inegi.org.mx/rnm/index.php/catalog/903/
 13. **[A]** CANACAR / SICT — antigüedad de la flota de autotransporte de carga (~19.3 años; 68.8 %
