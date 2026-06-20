@@ -151,7 +151,7 @@ de eslabones, del más sólido al más débil:
    la misma reparación hecha en taller de forma planeada.
 
 A esto se añade el contexto regulatorio (equipo de emergencia obligatorio, 49 CFR §393.95) y la
-penalización por demora que soporta el *dwell* promedio documentado por ATRI (1 h 38 min). El punto
+penalización por demora que soporta el *dwell* promedio documentado por ATRI (1 h 40 min). El punto
 económico: **cada descompostura traslada trabajo del cuadrante barato y planeado al cuadrante caro y
 en ruta**, y lo hace con una frecuencia medible.
 
@@ -168,12 +168,15 @@ rayado → reemplazo de rotor; o sobrecalentamiento → cabeza deformada → jun
 secuencia es real y conocida.
 
 Sobre la magnitud económica de "reactivo vs planeado", la mejor fuente disponible es federal pero
-**no es de camiones**: el *O&M Best Practices Guide* del DOE/PNNL establece que **el mantenimiento
-reactivo cuesta de 3 a 5× el planeado**, que el preventivo ahorra 12–18 % y el predictivo 25–30 %
-frente al reactivo. Lo declaramos con honestidad: es un **benchmark cross-industry** (plantas y
-edificios federales) extrapolado a flota; no encontramos un "3–5×" con fuente primaria específica de
-Clase 8. El orden de magnitud, sin embargo, es consistente con el premium de emergencia 2–3× de la
-sección anterior.
+**no es de camiones**: el *O&M Best Practices Guide* del DOE/FEMP (PNNL) documenta que el
+mantenimiento reactivo sigue siendo el modo **predominante (>55 % de la actividad de mantenimiento
+en instalaciones de EE. UU.)** y el más caro, y que pasar de reactivo a **preventivo ahorra 12–18 %**,
+y a **predictivo, 25–30 %** del costo de mantenimiento (cifras verificadas literalmente contra el
+texto de la guía). Lo declaramos con honestidad: es un **benchmark cross-industry** (plantas y
+edificios federales) extrapolado a flota. El conocido multiplicador de "el reactivo cuesta 3–5× el
+planeado" circula mucho, pero **no lo pudimos confirmar en esta guía ni en una fuente primaria de
+Clase 8**, así que no lo usamos como ancla. El sobrecosto de lo no programado es, de todos modos,
+consistente en orden de magnitud con el premium de emergencia 2–3× de la sección anterior.
 
 > Los montos en dólares de las cascadas físicas que circulan en la literatura suelen ser de vehículo
 > ligero; para Clase 8 (un rotor, un *rebuild* diésel de $20–40 k) hacen falta cotizaciones OEM/VMRS
@@ -316,6 +319,10 @@ Para ubicar la magnitud, conviene el desglose del costo marginal de operación d
 | Llantas | 0.046 | **Controlable** |
 | Peajes | 0.034 | No controlable |
 
+*(Desglose verificado contra el primario de ATRI. La tabla lista las partidas principales; el total
+2023 de $2.270/mi incluye además prestaciones del conductor $0.188 y permisos/licencias $0.009, no
+mostradas por ser ajenas a la decisión de mantenimiento.)*
+
 El M&R representa **~9 % del costo operativo** ($0.198–0.202/milla según el año; LTL ~$0.222/milla).
 La lectura no es "el mantenimiento es barato, ignórenlo". Es la opuesta: **es de las poquísimas líneas
 que una decisión de mantenimiento puede mover** —junto con llantas, el bloque "taller/partes"
@@ -396,9 +403,10 @@ o **[C]** comerciales/de industria (interesadas; ilustrativas).
 5. **[A]** ATRI — *An Analysis of the Operational Costs of Trucking* (2024 / 2025 Update): costo
    marginal $2.26/mi = $90.89/h; M&R $0.198–0.202/mi; primas +12.5 % a 9.9 ¢/mi (2023); MMBRR; dwell.
    https://truckingresearch.org/about-atri/atri-research/operational-costs-of-trucking/
-6. **[A]** DOE / FEMP (PNNL) — *Operations & Maintenance Best Practices Guide*, R3.0, Cap. 5
-   (Predictive Maintenance): ROI 10×; −25–30 % costo; −70–75 % descomposturas; −35–45 % downtime;
-   reactivo 3–5× planeado. https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf
+6. **[A]** DOE / FEMP (PNNL) — *Operations & Maintenance Best Practices Guide*, R3.0, §5.4
+   (Predictive Maintenance) — **verificado literalmente**: ROI 10×; −25–30 % costo; −70–75 %
+   descomposturas; −35–45 % downtime; +20–25 % producción; PdM sobre PM +8–12 %; §5.3 preventivo
+   12–18 % sobre reactivo. https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf
    · PNNL-14788: https://www.pnnl.gov/main/publications/external/technical_reports/pnnl-14788.pdf
 7. **[A]** TMC (ATA) — *Recommended Practice RP 622B* (secuencia de cascada de falla de extremo de
    rueda) y benchmarking TMC/FleetNet (~$522/evento). https://tmc.trucking.org/node/294

@@ -30,11 +30,15 @@ Camión con problema de frenos: **+170% más probable** de recibir la causa crí
 
 ## Bloque 3 — Daño secundario / cascada de "correr hasta fallar"  ✅ (investigado)
 
-**El "reactivo 3–5× el planeado" SÍ es auditable — pero la fuente primaria es DOE/PNNL, NO camiones:** [AUTORITATIVO]
-- US DOE / PNNL/FEMP *O&M Best Practices Guide* R3.0: reactivo **3–5×** planeado; preventivo ahorra **12–18%**,
-  predictivo **25–30%** vs reactivo. [omguide PDF](https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf), [PNNL-14788](https://www.pnnl.gov/main/publications/external/technical_reports/pnnl-14788.pdf)
-- **Caveat obligatorio**: es benchmark cross-industry de equipo (plantas/edificios federales), extrapolado a flota.
-  NO hay (encontrado) un 3–5× con fuente primaria específica de Clase 8 — declarar la extrapolación. HUECO.
+**CORRECCIÓN tras verificación literal (2026-06-19, PDF descargado a `References/`):** el multiplicador "reactivo 3–5×
+el planeado" **NO está en el FEMP O&M BPG R3.0** (búsqueda exhaustiva del texto extraído: 0 coincidencias). Era una
+**MISATRIBUCIÓN**; no usarlo como [AUTORITATIVO] de esta guía. Lo que el FEMP **sí dice y quedó CONFIRMADO byte-a-byte**: [AUTORITATIVO]
+- §5.2: reactivo = modo **predominante (>55%** de la actividad de mantenimiento en instalaciones de EE.UU.); >55% reactivo / 31% preventivo / 12% predictivo / 2% otro.
+- §5.3: **preventivo ahorra 12–18%** sobre reactivo ("as much as 12% to 18% on the average").
+- §5.4: **predictivo +8–12% sobre preventivo**; ROI 10×, costo −25–30%, descomposturas −70–75%, downtime −35–45%, producción +20–25%; "exceeding 30–40%" donde domina lo reactivo.
+  Texto: "independent surveys indicate the following industrial average savings…" ⇒ confirma que el DOE las compila de la industria, no es experimento federal.
+  [omguide PDF en `References/DOE_FEMP_OM_Best_Practices_Guide_R3.pdf`](https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf)
+- **Caveat que SIGUE vigente**: las cifras son benchmark cross-industry (plantas/edificios federales), extrapoladas a flota; sin fuente primaria de Clase 8. El "3–5×" queda como dicho de industria sin primario → NO anclar en él.
 
 **Cascadas físicas (secuencia AUTORITATIVA vía TMC RP; montos $ COMERCIALES y mayormente auto ligero):**
 - Sello rueda → balero → maza/spindle/ABS → wheel-off: **TMC RP 622B** (autoritativo de industria para la secuencia).
