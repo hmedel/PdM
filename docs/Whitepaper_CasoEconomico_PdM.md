@@ -232,17 +232,21 @@ interior $T^\star$ único.** No es "mantener más" ni "mantener menos": es mante
 óptimo**, y ese punto existe y es calculable.
 
 Esta es la justificación matemática de que el predictivo es una inversión con óptimo bien definido, no
-un acto de fe. El motor de PhAIMaT calcula precisamente este $T^\star$ por componente a partir de la
-señal de degradación observada (módulo de intervalo óptimo del estimador), y lo desplaza dinámicamente
-conforme la condición real del activo cambia —que es lo que distingue al predictivo del preventivo de
-calendario fijo.
+un acto de fe. El motor de PhAIMaT calcula precisamente este $T^\star$ por componente: en los
+componentes con precursor a bordo (frenos, DPF, batería, turbo…) a partir de la **señal de degradación
+observada**, y en los que no lo tienen (llanta, wheel-end) a partir de la **estadística de vida** del
+componente. En ambos casos el intervalo se desplaza dinámicamente conforme cambia la condición real del
+activo —que es lo que distingue al predictivo del preventivo de calendario fijo.
 
 ---
 
 ## 9. Cumplimiento → seguro y contratos: el costo que no aparece en la factura del taller
 
 Hay un término de $c_f$ que no es ni reparación ni accidente: la **degradación del perfil de
-cumplimiento**, que se paga en primas y en contratos perdidos.
+cumplimiento** —el $P(\text{OOS})\cdot c_\text{cumplimiento}$ de la ecuación—, que se paga en primas y
+en contratos perdidos. Conviene leerlo en sentido amplio: no es solo la probabilidad de un evento
+*out-of-service* puntual, sino el efecto acumulado de las violaciones sobre el **percentil SMS**, que
+penaliza durante 24 meses.
 
 - El **Vehicle Maintenance BASIC penaliza durante 24 meses**: cada violación de mantenimiento
   (frenos, luces, llantas, sujeción de carga) afecta el percentil SMS del transportista por dos años;
@@ -339,7 +343,7 @@ gana en la cola de la distribución de costo de falla:
   de reactivo-caro a programado-barato, además de proteger primas y elegibilidad de contratos.
 
 La conclusión operativa es simple y robusta a la incertidumbre de los parámetros: **basta evitar un
-solo evento catastrófico cada varios años —un fatal de $15.2 M o un veredicto de $36 M— para pagar
+solo evento catastrófico cada varios años —un fatal de $15.23 M o un veredicto de $36 M— para pagar
 décadas de programa predictivo en toda la flota.** Y en una flota envejecida como la mexicana
 (~19.3 años de edad media), el deterioro acumulado hace el argumento más fuerte, no más débil.
 
