@@ -109,6 +109,10 @@ los BASIC predicen** (Driver Fitness o Controlled Substances no muestran la mism
 **Vehicle Maintenance BASIC** el que correlaciona positivamente con el riesgo futuro. Justamente el
 que un programa de mantenimiento predictivo mueve.
 
+![**Tasa de accidentes por política de mantenimiento.** Los niveles están anclados en las cifras documentadas de §2.3 (5.65 vs 3.43 choques por 100 unidades-año, la brecha de +65 %); la política "reactivo incorporando preventivo" transiciona de uno a otro conforme se adopta el preventivo. *Simulación PhAIMaT, ilustrativa.*](../figures/accidentes_politicas.png){width=90%}
+
+![**Accidentes acumulados** (flota de 100 unidades, 4 años). El área sombreada entre reactivo y preventivo es el accidente evitado: el premio de seguridad del programa, dominado por el término $P(\text{accidente}\mid\text{falla})\cdot c_\text{accidente}$. *Simulación PhAIMaT, ilustrativa.*](../figures/accidentes_acumulados.png){width=90%}
+
 ---
 
 ## 3. El costo del accidente
@@ -154,6 +158,8 @@ A esto se añade el contexto regulatorio (equipo de emergencia obligatorio, 49 C
 penalización por demora que soporta el *dwell* promedio documentado por ATRI (1 h 40 min). El punto
 económico: **cada descompostura traslada trabajo del cuadrante barato y planeado al cuadrante caro y
 en ruta**, y lo hace con una frecuencia medible.
+
+![**Descomposturas que inmovilizan el vehículo** (falla en ruta), acumuladas por política. Salida del simulador agente-físico de PhAIMaT sobre una flota de 60 camiones a 4 años: el reactivo acumula 2,622 inmovilizaciones; el predictivo CBM, 1,076. Cada una es un evento de $c_\text{varado}$ —reparación en ruta, premium de emergencia y tiempo parado.](../figures/descomposturas_politicas.png){width=90%}
 
 ---
 
@@ -241,6 +247,10 @@ componentes con precursor a bordo (frenos, DPF, batería, turbo…) a partir de 
 observada**, y en los que no lo tienen (llanta, wheel-end) a partir de la **estadística de vida** del
 componente. En ambos casos el intervalo se desplaza dinámicamente conforme cambia la condición real del
 activo —que es lo que distingue al predictivo del preventivo de calendario fijo.
+
+![**Costo acumulado por política**, para flota nueva (de agencia) y usada. El óptimo $T^\star$ y el predictivo CBM se separan claramente del reactivo y del intervalo fijo; en flota nueva el predictivo cierra en 37.7 M MXN frente a 81.4 M del reactivo (4 años, 60 camiones). *Simulación PhAIMaT.*](../figures/politicas_economia.png){width=100%}
+
+![**Intervenciones totales por política.** $T^\star$ y el CBM logran una seguridad similar (fallas correctivas 2,112 vs 1,869), pero $T^\star$ hace 8,197 reemplazos preventivos contra 3,806 del CBM: misma protección, mucho más sobre-mantenimiento. Es la diferencia que la curva de costo (Figura 4) traduce en ~20 % de ahorro del CBM sobre $T^\star$. *Simulación PhAIMaT.*](../figures/intervenciones_politicas.png){width=90%}
 
 ---
 

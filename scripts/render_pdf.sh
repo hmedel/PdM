@@ -44,8 +44,13 @@ SUBTITLE="$(grep -m1 '^### ' "$SRC" | sed 's/^### //')"
     '
 } > "$WORK"
 
+# Las imágenes se referencian relativas al .md (p.ej. ../figures/x.png); resource-path al dir del .md.
+SRCDIR="$(cd "$(dirname "$SRC")" && pwd)"
+
 pandoc "$WORK" -f markdown+autolink_bare_uris -o "$OUT" \
   --pdf-engine=xelatex \
+  --resource-path="$SRCDIR" \
+  -V lang="${PDFLANG:-es}" \
   --toc --toc-depth=2 \
   -V geometry:margin=1in \
   -V fontsize=11pt \
