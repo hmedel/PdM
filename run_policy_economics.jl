@@ -20,6 +20,13 @@ const DM = MaintenanceSim.DamageModels; const FIG = joinpath(ROOT, "figures"); m
 const Ec = MaintenanceSim.Economics; const Pol = MaintenanceSim.Policy; const Pr = MaintenanceSim.Precursors
 theme(:wong); default(dpi=150, legendfontsize=8, titlefontsize=10, guidefontsize=9, framestyle=:box)
 
+# Idioma de las figuras: FIGLANG=en para inglés (default español). Preserva los nombres ES de archivo.
+const FIGLANG = get(ENV, "FIGLANG", "es")
+tr(es, en) = FIGLANG == "en" ? en : es
+P_react = tr("Reactivo", "Reactive");   P_fix  = tr("Intervalo fijo", "Fixed interval")
+P_opt   = tr("Óptimo T*", "Optimal T*"); P_pred = tr("Predictivo CBM", "Predictive CBM")
+L_month = tr("mes", "month")
+
 NV, H = 60, 1460
 comps = [c.name for c in DM.COMPONENTS if :heavy_truck in c.classes]
 
@@ -53,12 +60,12 @@ function cost_curves(lives, truth)
 end
 
 function panel(cc, title_; ylab::Bool=true)
-    p = plot(title=title_, xlabel="mes", legend=:topleft, left_margin=8Plots.mm, bottom_margin=5Plots.mm,
-             ylabel = ylab ? "costo acumulado (millones MXN)" : "")
-    plot!(p, cc.months, cc.reactivo ./1e6,   lw=3, color=:firebrick,  label="Reactivo")
-    plot!(p, cc.months, cc.fijo ./1e6,        lw=3, color=:orange,     label="Intervalo fijo")
-    plot!(p, cc.months, cc.optimo ./1e6,      lw=3, color=:steelblue,  label="Óptimo T*")
-    plot!(p, cc.months, cc.predictivo ./1e6,  lw=3, color=:seagreen,   label="Predictivo CBM")
+    p = plot(title=title_, xlabel=L_month, legend=:topleft, left_margin=8Plots.mm, bottom_margin=5Plots.mm,
+             ylabel = ylab ? tr("costo acumulado (millones MXN)", "cumulative cost (million MXN)") : "")
+    plot!(p, cc.months, cc.reactivo ./1e6,   lw=3, color=:firebrick,  label=P_react)
+    plot!(p, cc.months, cc.fijo ./1e6,        lw=3, color=:orange,     label=P_fix)
+    plot!(p, cc.months, cc.optimo ./1e6,      lw=3, color=:steelblue,  label=P_opt)
+    plot!(p, cc.months, cc.predictivo ./1e6,  lw=3, color=:seagreen,   label=P_pred)
     p
 end
 
@@ -81,8 +88,8 @@ end
 # Distribución de EVENTOS por política: fallas (en ruta, caras/peligrosas) vs reemplazos preventivos.
 function event_counts(lives, truth)
     Tfix, Topt, pol_pred = policies(lives, truth)
-    pols = ["Reactivo"=>Pol.Reactive(), "Intervalo fijo"=>Pol.AgeReplace(Tfix),
-            "Óptimo T*"=>Pol.AgeReplace(Topt), "Predictivo CBM"=>pol_pred]
+    pols = [P_react=>Pol.Reactive(), P_fix=>Pol.AgeReplace(Tfix),
+            P_opt=>Pol.AgeReplace(Topt), P_pred=>pol_pred]
     labs = String[]; fails = Int[]; prevs = Int[]
     for (lab, pol) in pols
         o = reduce(vcat, [Pol.evaluate(pl, pol) for pl in lives])
@@ -93,17 +100,18 @@ end
 labs, fails, prevs = event_counts(lN, tN)
 @printf("Eventos (flota nueva): %s\n", join(["$(labs[i]): $(fails[i]) fallas / $(prevs[i]) prev" for i in eachindex(labs)], " · "))
 pEv = groupedbar(labs, hcat(fails, prevs), bar_position=:stack, xrotation=15,
-    label=["Fallas (en ruta — caras/peligrosas)" "Reemplazos preventivos (taller)"],
-    color=[:firebrick :seagreen], title="Eventos por política (flota nueva) — el predictivo convierte fallas en preventivos",
-    ylabel="nº de eventos en 4 años")
-savefig(pEv, joinpath(FIG, "politicas_eventos.pdf")); savefig(pEv, joinpath(FIG, "politicas_eventos.png"))
-println("→ figures/politicas_eventos.{pdf,png}")
+    label=[tr("Fallas (en ruta — caras/peligrosas)", "Failures (on-road — costly/dangerous)") tr("Reemplazos preventivos (taller)", "Preventive replacements (shop)")],
+    color=[:firebrick :seagreen], title=tr("Eventos por política (flota nueva) — el predictivo convierte fallas en preventivos", "Events by policy (new fleet) — predictive turns failures into preventives"),
+    ylabel=tr("nº de eventos en 4 años", "events over 4 years"))
+fnE = tr("politicas_eventos", "events_by_policy")
+savefig(pEv, joinpath(FIG, fnE*".pdf")); savefig(pEv, joinpath(FIG, fnE*".png"))
+println("→ figures/$fnE.{pdf,png}")
 
 # Descomposturas que INMOVILIZAN el vehículo (falla en ruta) acumuladas en el tiempo, por política.
 function breakdown_curves(lives, truth)
     Tfix, Topt, pol_pred = policies(lives, truth)
-    pols = ["Reactivo"=>Pol.Reactive(), "Intervalo fijo"=>Pol.AgeReplace(Tfix),
-            "Óptimo T*"=>Pol.AgeReplace(Topt), "Predictivo CBM"=>pol_pred]
+    pols = [P_react=>Pol.Reactive(), P_fix=>Pol.AgeReplace(Tfix),
+            P_opt=>Pol.AgeReplace(Topt), P_pred=>pol_pred]
     months = collect(0:Int(round(H/30)))
     series = Pair{String,Vector{Int}}[]
     for (lab, pol) in pols
@@ -114,36 +122,38 @@ function breakdown_curves(lives, truth)
     return months, series
 end
 mB, sB = breakdown_curves(lN, tN)
-cols = Dict("Reactivo"=>:firebrick, "Intervalo fijo"=>:orange, "Óptimo T*"=>:steelblue, "Predictivo CBM"=>:seagreen)
-pBk = plot(title="Descomposturas que inmovilizan el vehículo, por política",
-           xlabel="mes", ylabel="descomposturas acumuladas (vehículo parado en ruta)",
+cols = Dict(P_react=>:firebrick, P_fix=>:orange, P_opt=>:steelblue, P_pred=>:seagreen)
+pBk = plot(title=tr("Descomposturas que inmovilizan el vehículo, por política", "Breakdowns that immobilize the vehicle, by policy"),
+           xlabel=L_month, ylabel=tr("descomposturas acumuladas (vehículo parado en ruta)", "cumulative breakdowns (vehicle stranded on-road)"),
            legend=:topleft, left_margin=8Plots.mm, bottom_margin=5Plots.mm, size=(1000,560))
 for (lab, ys) in sB
     plot!(pBk, mB, ys, lw=3, color=cols[lab], label=lab)
 end
-savefig(pBk, joinpath(FIG, "descomposturas_politicas.pdf")); savefig(pBk, joinpath(FIG, "descomposturas_politicas.png"))
+fnB = tr("descomposturas_politicas", "immobilizing_breakdowns_by_policy")
+savefig(pBk, joinpath(FIG, fnB*".pdf")); savefig(pBk, joinpath(FIG, fnB*".png"))
 @printf("Descomposturas en ruta (4 años): %s\n", join(["$(lab): $(ys[end])" for (lab,ys) in sB], " · "))
-println("→ figures/descomposturas_politicas.{pdf,png}")
+println("→ figures/$fnB.{pdf,png}")
 
 # Intervenciones TOTALES por política: fallas correctivas + reemplazos preventivos.
 # Hace visible el sobre-mantenimiento: T* logra seguridad similar al CBM pero con muchos más preventivos.
 tot = fails .+ prevs
 pI = groupedbar(labs, hcat(fails, prevs), bar_position=:stack, xrotation=0,
-    label=["Fallas correctivas" "Reemplazos preventivos"], color=[:firebrick :steelblue],
-    title="Intervenciones totales por política — flota nueva",
-    ylabel="nº de intervenciones en 4 años", legend=:topleft,
+    label=[tr("Fallas correctivas", "Corrective failures") tr("Reemplazos preventivos", "Preventive replacements")], color=[:firebrick :steelblue],
+    title=tr("Intervenciones totales por política — flota nueva", "Total interventions by policy — new fleet"),
+    ylabel=tr("nº de intervenciones en 4 años", "interventions over 4 years"), legend=:topleft,
     left_margin=8Plots.mm, bottom_margin=6Plots.mm, size=(1000,580), ylims=(0, 1.14*maximum(tot)))
 for (i, tt) in enumerate(tot)
     annotate!(pI, i, tt + 0.035*maximum(tot), text(string(tt), 9, :black, :center))
 end
-savefig(pI, joinpath(FIG, "intervenciones_politicas.pdf")); savefig(pI, joinpath(FIG, "intervenciones_politicas.png"))
+fnI = tr("intervenciones_politicas", "total_interventions_by_policy")
+savefig(pI, joinpath(FIG, fnI*".pdf")); savefig(pI, joinpath(FIG, fnI*".png"))
 @printf("Intervenciones totales (4 años): %s\n", join(["$(labs[i]): $(tot[i]) ($(fails[i])f+$(prevs[i])p)" for i in eachindex(labs)], " · "))
-println("→ figures/intervenciones_politicas.{pdf,png}")
+println("→ figures/$fnI.{pdf,png}")
 
-P = plot(panel(ccN, "Flota NUEVA"; ylab=true),
-         panel(ccU, "Flota USADA"; ylab=false),
+P = plot(panel(ccN, tr("Flota NUEVA", "NEW fleet"); ylab=true),
+         panel(ccU, tr("Flota USADA", "USED fleet"); ylab=false),
          layout=(1,2), size=(1500,560),
-         plot_title="Costo por política de mantenimiento")
-savefig(P, joinpath(FIG, "politicas_economia.pdf"))
-savefig(P, joinpath(FIG, "politicas_economia.png"))
-println("→ figures/politicas_economia.{pdf,png}")
+         plot_title=tr("Costo por política de mantenimiento", "Cost by maintenance policy"))
+fnC = tr("politicas_economia", "cost_by_policy")
+savefig(P, joinpath(FIG, fnC*".pdf")); savefig(P, joinpath(FIG, fnC*".png"))
+println("→ figures/$fnC.{pdf,png}")

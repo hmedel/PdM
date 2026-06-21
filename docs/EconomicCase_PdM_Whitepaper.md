@@ -106,6 +106,10 @@ the relationship between CSA scores and crash risk. An honest caveat: **not ever
 Maintenance BASIC** that correlates positively with future risk. Precisely the one a predictive
 maintenance program moves.
 
+![**Accident rate by maintenance policy.** Levels are anchored in the documented figures of §2.3 (5.65 vs 3.43 crashes per 100 power units-year, the +65 % gap); the "reactive adopting preventive" policy transitions from one to the other as preventive maintenance is adopted. *PhAIMaT simulation, illustrative.*](../figures/accident_rate_by_policy.png){width=90%}
+
+![**Cumulative accidents** (100-unit fleet, 4 years). The shaded area between reactive and preventive is the crash avoided: the program's safety prize, dominated by the term $P(\text{crash}\mid\text{failure})\cdot c_\text{crash}$. *PhAIMaT simulation, illustrative.*](../figures/cumulative_accidents_by_policy.png){width=90%}
+
 ---
 
 ## 3. The cost of the crash
@@ -151,6 +155,8 @@ To this add the regulatory context (mandatory emergency equipment, 49 CFR §393.
 penalty borne by the average *dwell* documented by ATRI (1 h 40 min). The economic point: **every
 breakdown shifts work from the cheap, planned quadrant to the expensive, on-road quadrant**, and it
 does so at a measurable frequency.
+
+![**Breakdowns that immobilize the vehicle** (on-road failure), accumulated by policy. Output of PhAIMaT's agent-physical simulator over a 60-truck fleet across 4 years: reactive accumulates 2,622 immobilizations; predictive CBM, 1,076. Each is a $c_\text{breakdown}$ event —roadside repair, emergency premium and stopped time.](../figures/immobilizing_breakdowns_by_policy.png){width=90%}
 
 ---
 
@@ -236,6 +242,10 @@ component: on components with an on-board precursor (brakes, DPF, battery, turbo
 degradation signal**, and on those without one (tire, wheel-end) from the component's **life
 statistics**. In both cases the interval shifts dynamically as the asset's real condition changes —
 which is what distinguishes the predictive approach from fixed-calendar preventive maintenance.
+
+![**Cumulative cost by policy**, for new (dealer) and used fleets. The optimal $T^\star$ and predictive CBM clearly separate from reactive and fixed-interval; on a new fleet the predictive closes at 37.7 M MXN versus 81.4 M for reactive (4 years, 60 trucks). *PhAIMaT simulation.*](../figures/cost_by_policy.png){width=100%}
+
+![**Total interventions by policy.** $T^\star$ and CBM achieve similar safety (corrective failures 2,112 vs 1,869), but $T^\star$ makes 8,197 preventive replacements against 3,806 for CBM: same protection, far more over-maintenance. It is the difference the cost curve (Figure 4) translates into ~20 % savings of CBM over $T^\star$. *PhAIMaT simulation.*](../figures/total_interventions_by_policy.png){width=90%}
 
 ---
 
