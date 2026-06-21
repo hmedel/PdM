@@ -55,10 +55,10 @@ end
 function panel(cc, title_; ylab::Bool=true)
     p = plot(title=title_, xlabel="mes", legend=:topleft, left_margin=8Plots.mm, bottom_margin=5Plots.mm,
              ylabel = ylab ? "costo acumulado (millones MXN)" : "")
-    plot!(p, cc.months, cc.reactivo ./1e6,   lw=3, color=:firebrick,  label="Reactivo (run-to-failure)")
-    plot!(p, cc.months, cc.fijo ./1e6,        lw=3, color=:orange,     label="Intervalo fijo (0.7·MTTF)")
-    plot!(p, cc.months, cc.optimo ./1e6,      lw=3, color=:steelblue,  label="Óptimo T* (por edad)")
-    plot!(p, cc.months, cc.predictivo ./1e6,  lw=3, color=:seagreen,   label="Predictivo CBM (+programa)")
+    plot!(p, cc.months, cc.reactivo ./1e6,   lw=3, color=:firebrick,  label="Reactivo")
+    plot!(p, cc.months, cc.fijo ./1e6,        lw=3, color=:orange,     label="Intervalo fijo")
+    plot!(p, cc.months, cc.optimo ./1e6,      lw=3, color=:steelblue,  label="Óptimo T*")
+    plot!(p, cc.months, cc.predictivo ./1e6,  lw=3, color=:seagreen,   label="Predictivo CBM")
     p
 end
 
@@ -99,10 +99,36 @@ pEv = groupedbar(labs, hcat(fails, prevs), bar_position=:stack, xrotation=15,
 savefig(pEv, joinpath(FIG, "politicas_eventos.pdf")); savefig(pEv, joinpath(FIG, "politicas_eventos.png"))
 println("→ figures/politicas_eventos.{pdf,png}")
 
-P = plot(panel(ccN, "Flota NUEVA (de agencia, sin edad previa)"; ylab=true),
-         panel(ccU, "Flota USADA (con edad preexistente, ~años de uso)"; ylab=false),
+# Descomposturas que INMOVILIZAN el vehículo (falla en ruta) acumuladas en el tiempo, por política.
+function breakdown_curves(lives, truth)
+    Tfix, Topt, pol_pred = policies(lives, truth)
+    pols = ["Reactivo"=>Pol.Reactive(), "Intervalo fijo"=>Pol.AgeReplace(Tfix),
+            "Óptimo T*"=>Pol.AgeReplace(Topt), "Predictivo CBM"=>pol_pred]
+    months = collect(0:Int(round(H/30)))
+    series = Pair{String,Vector{Int}}[]
+    for (lab, pol) in pols
+        o = reduce(vcat, [Pol.evaluate(pl, pol) for pl in lives])
+        days = sort([x.end_day for x in o if x.kind == :failure && x.in_route])
+        push!(series, lab => [count(d -> d <= m*30, days) for m in months])
+    end
+    return months, series
+end
+mB, sB = breakdown_curves(lN, tN)
+cols = Dict("Reactivo"=>:firebrick, "Intervalo fijo"=>:orange, "Óptimo T*"=>:steelblue, "Predictivo CBM"=>:seagreen)
+pBk = plot(title="Descomposturas que inmovilizan el vehículo, por política",
+           xlabel="mes", ylabel="descomposturas acumuladas (vehículo parado en ruta)",
+           legend=:topleft, left_margin=8Plots.mm, bottom_margin=5Plots.mm, size=(1000,560))
+for (lab, ys) in sB
+    plot!(pBk, mB, ys, lw=3, color=cols[lab], label=lab)
+end
+savefig(pBk, joinpath(FIG, "descomposturas_politicas.pdf")); savefig(pBk, joinpath(FIG, "descomposturas_politicas.png"))
+@printf("Descomposturas en ruta (4 años): %s\n", join(["$(lab): $(ys[end])" for (lab,ys) in sB], " · "))
+println("→ figures/descomposturas_politicas.{pdf,png}")
+
+P = plot(panel(ccN, "Flota NUEVA"; ylab=true),
+         panel(ccU, "Flota USADA"; ylab=false),
          layout=(1,2), size=(1500,560),
-         plot_title="Costo por política de mantenimiento — 4 políticas × 2 flotas")
+         plot_title="Costo por política de mantenimiento")
 savefig(P, joinpath(FIG, "politicas_economia.pdf"))
 savefig(P, joinpath(FIG, "politicas_economia.png"))
 println("→ figures/politicas_economia.{pdf,png}")
