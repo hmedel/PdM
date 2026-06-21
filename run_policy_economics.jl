@@ -125,6 +125,21 @@ savefig(pBk, joinpath(FIG, "descomposturas_politicas.pdf")); savefig(pBk, joinpa
 @printf("Descomposturas en ruta (4 años): %s\n", join(["$(lab): $(ys[end])" for (lab,ys) in sB], " · "))
 println("→ figures/descomposturas_politicas.{pdf,png}")
 
+# Intervenciones TOTALES por política: fallas correctivas + reemplazos preventivos.
+# Hace visible el sobre-mantenimiento: T* logra seguridad similar al CBM pero con muchos más preventivos.
+tot = fails .+ prevs
+pI = groupedbar(labs, hcat(fails, prevs), bar_position=:stack, xrotation=0,
+    label=["Fallas correctivas" "Reemplazos preventivos"], color=[:firebrick :steelblue],
+    title="Intervenciones totales por política — flota nueva",
+    ylabel="nº de intervenciones en 4 años", legend=:topleft,
+    left_margin=8Plots.mm, bottom_margin=6Plots.mm, size=(1000,580), ylims=(0, 1.14*maximum(tot)))
+for (i, tt) in enumerate(tot)
+    annotate!(pI, i, tt + 0.035*maximum(tot), text(string(tt), 9, :black, :center))
+end
+savefig(pI, joinpath(FIG, "intervenciones_politicas.pdf")); savefig(pI, joinpath(FIG, "intervenciones_politicas.png"))
+@printf("Intervenciones totales (4 años): %s\n", join(["$(labs[i]): $(tot[i]) ($(fails[i])f+$(prevs[i])p)" for i in eachindex(labs)], " · "))
+println("→ figures/intervenciones_politicas.{pdf,png}")
+
 P = plot(panel(ccN, "Flota NUEVA"; ylab=true),
          panel(ccU, "Flota USADA"; ylab=false),
          layout=(1,2), size=(1500,560),
