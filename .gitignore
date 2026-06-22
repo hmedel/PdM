@@ -4,6 +4,12 @@
 # Artefactos de compilación (PackageCompiler / create_app / sysimage)
 /build/
 
+# Entornos de build: el de compile/ lo regenera build_sysimage.jl/build_app.jl (solo se versionan
+# los scripts); de apps/ se versiona el Project.toml (es el paquete) pero NO el Manifest (machine-specific).
+/compile/Project.toml
+/compile/Manifest.toml
+/apps/*/Manifest.toml
+
 # macOS
 .DS_Store
 

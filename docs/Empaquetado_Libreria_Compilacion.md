@@ -135,8 +135,18 @@ Checklist:
 - [x] Estimator batch: `fit_component(history)->ComponentModel` + `estimate(model,unit)` + `estimate_fleet(history,units,costs)`.
       Ajuste 1× por componente (~805 ms/modelo, nboot=50); evaluación ~21 µs/unidad (T* reescalado por η,
       exacto en Weibull). Demo `run_estimator_demo.jl`; tests `test/test_estimator.jl` (16). 145 verdes.
-- [ ] Ingesta BD: leer historiales+unidades y escribir resultados (server-side).
-- [ ] B.1 `julia_main()` (conecta BD → estimate_fleet → escribe) + `create_app` en el servidor.
+- [x] Ingesta BD: adaptador puro `MaintenanceSim.TrackerAdapter` (`run_estimates`) + runner LibPQ. (commit 7321a4d)
+- [x] B.1 `julia_main()` + estructura `create_app`: paquete-app `apps/PdMBatchApp` (módulo con `julia_main`/
+      `run_batch`, deps LibPQ/Tables/UUIDs + MaintenanceSim por `[sources]`), `compile/build_app.jl` +
+      `compile/precompile_app.jl`. App carga como paquete y falla limpio sin `TRACKER_DB_URL`. Compilar:
+      `julia compile/build_app.jl` (en el server con red; binario en `build/PdMBatchApp/bin/`).
+- [x] B.2 Sysimage del estimador: `compile/build_sysimage.jl` + `compile/precompile_estimator.jl` →
+      `build/MaintenanceSim.so` (mata la latencia JIT del fit Weibull). Correr: `julia -Jbuild/MaintenanceSim.so …`.
+
+**Fixes necesarios para empaquetar (descubiertos al compilar):** el `Project.toml` del paquete carecía de
+`uuid` y de los stdlibs (`Random`/`Printf`/`Dates`/`LinearAlgebra`/`Statistics`) que los submódulos `using` —
+funcionaba vía `include` pero NO como paquete instalado. Añadidos. En Apple Silicon, `cpu_target="generic"`
+rompe (`LLVM ERROR aese`); el build usa target nativo por defecto y `ENV["PDM_CPU_TARGET"]` para el server x86-64.
 
 **Riesgo:** A.2 (hecho) tocó includes con pruebas; validado 131 verdes. El resto es aditivo.
 
