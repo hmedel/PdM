@@ -59,6 +59,8 @@ $$C(T)=\frac{c_p\,R(T)\;+\;c_f\,F(T)}{\displaystyle\int_{0}^{T} R(s)\,ds}\,,\qqu
 > **mínimo interior único $T^\star$**: ni antes (desperdicio de vida útil) ni después (riesgo de falla).
 > Ese $T^\star$ es la recomendación, y se desplaza con la condición real de cada activo.
 
+![**El óptimo, en la práctica.** Costo de mantenimiento acumulado proyectado bajo cuatro políticas de intervención, para una flota nueva y una envejecida. Intervenir en el punto óptimo —en lugar de esperar a la falla (reactivo) o seguir un calendario fijo— reduce el costo total a lo largo de la vida de la flota. *(Cifras ilustrativas; se calibran por flota.)*](../figures/politicas_economia.png){width=100%}
+
 ---
 
 ## Nota
