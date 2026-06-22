@@ -1,7 +1,8 @@
 # Integración del estimador PdM con la BD real de Tracker (`tracker_prod`)
 
 **Propósito:** diseñar cómo el estimador (`MaintenanceSim.Estimator`, forma batch) se conecta al esquema
-**real** de Tracker, en vez de imponer un esquema propio. Documento de diseño — NO toca SQL todavía.
+**real** de Tracker, en vez de imponer un esquema propio. Documento de diseño + estado de implementación
+(ver §8).
 Flota objetivo: **mixta** (ligeros OBD-II hoy; pesados J1939 a futuro). Reemplaza el enfoque de la
 migración `003_obd_ingestion.sql` (estilo WS-A con PKs text/J1939), que queda **SUPERSEDED**.
 
@@ -181,3 +182,28 @@ inmediato del CBM en auto ligero está en batería, enfriamiento y combustible.
 **Riesgo:** bajo — todo aditivo y de solo-lectura sobre Tracker, salvo la columna opcional `is_corrective`.
 La incógnita real es la calidad/volumen del historial de `maintenance_records` para ajustar Weibull con
 sentido (con poca historia, el IC de β será ancho y el IFR rehusará — comportamiento correcto y honesto).
+
+---
+
+## 8. Estado de implementación (2026-06-21)
+
+**HECHO (en este repo, verificado con 189 tests verdes):**
+- `schema/migrations/004_pdm_integration.sql` — catálogo `pdm_component_catalog` (sembrado para flota
+  ligera), tabla de salida `pdm_prediction` (UUID/RLS), vistas `pdm_survival_record` y `pdm_live_unit`,
+  columna `is_corrective` y RLS. **Borrador**: los identificadores marcados `-- [A#]` (sobre todo la
+  columna de tiempo de `obd_data`) deben confirmarse contra el DDL real de `tracker_prod`.
+- `src/io/tracker_adapter.jl` (módulo `MaintenanceSim.TrackerAdapter`) — mapeo **puro** fila↔contrato
+  (`to_service_record`, `to_live_unit`, `to_costs`, `to_prediction_row`) + orquestación batch
+  `run_estimates` que **conserva la identidad** (tenant_id/vehicle_id) que `estimate_fleet` pierde.
+  SIN dependencia de BD (el paquete core sigue libre de LibPQ). `test/test_tracker_adapter.jl` (30 tests):
+  recupera β de datos Weibull sintéticos, mantiene identidad, omite componentes sin historial/costo.
+- `run_pdm_batch.jl` — runner server-side con **LibPQ** (único punto que toca la BD). Corre **por tenant**
+  fijando `app.current_tenant` (respeta RLS sin rol bypass). Tiene `julia_main()` para PackageCompiler.
+
+**PENDIENTE (requiere acceso a `tracker_prod`, no disponible desde el repo):**
+1. Confirmar nombres reales de columnas en el SQL (marcas `[A#]`), sobre todo la columna de tiempo de
+   `obd_data`, y aplicar la migración 004 contra `tracker_prod`.
+2. Provisionar el entorno de deploy con `LibPQ Tables UUIDs` y probar `run_pdm_batch.jl` end-to-end.
+3. Decidir/aplicar `is_corrective` en `maintenance_records` (mini-migración del lado Tracker) y empezar a
+   capturarlo; mientras tanto el ajuste usa el interino (todo intervalo cerrado = vida).
+4. Validar volumen/calidad del historial real (si es escaso, el IFR rehusará — correcto).

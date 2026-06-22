@@ -77,6 +77,14 @@ module Estimator
            fit_grouped, mean_residual_life, conditional_eta, decide, DecisionResult, GroupedFit
 end
 
+"ADAPTADOR BD↔estimador (producción): mapeo puro fila→contrato + orquestación batch. SIN LibPQ (vive en el runner)."
+module TrackerAdapter
+    using Random
+    using ..Estimator: ServiceRecord, LiveUnit, MaintenanceEstimate, ComponentModel, fit_component, estimate
+    include("io/tracker_adapter.jl")
+    export to_service_record, to_live_unit, to_costs, to_prediction_row, run_estimates
+end
+
 "EL SIMULADOR (banco de pruebas): genera eventos + telemetría con verdad conocida para calar el estimador."
 module Simulator
     using ..FleetSimulator, ..LifeProcess, ..TelemetrySim, ..Powertrain, ..TireModel,
@@ -86,6 +94,6 @@ module Simulator
            simulate_segments, run_economics
 end
 
-export Core, Estimator, Simulator
+export Core, Estimator, Simulator, TrackerAdapter
 
 end # module MaintenanceSim

@@ -7,7 +7,7 @@ using Test
 
 @testset "MaintenanceSim — suite completa" begin
     for f in ("test_J1939.jl", "test_FleetSimulator.jl", "test_telemetry.jl", "test_economics.jl",
-              "test_estimator.jl", "test_analytics.jl")
+              "test_estimator.jl", "test_analytics.jl", "test_tracker_adapter.jl")
         @testset "$f" begin
             include(joinpath(@__DIR__, f))
         end
