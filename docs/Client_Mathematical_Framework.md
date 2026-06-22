@@ -59,6 +59,13 @@ $$C(T)=\frac{c_p\,R(T)\;+\;c_f\,F(T)}{\displaystyle\int_{0}^{T} R(s)\,ds}\,,\qqu
 > **unique interior minimum $T^\star$**: neither too early (wasted useful life) nor too late (risk of
 > failure). That $T^\star$ is the recommendation, and it shifts with each asset's real condition.
 
+That minimum is not sought blindly: it is **characterized precisely** by the first-order condition
+
+$$h(T^\star)\int_{0}^{T^\star} R(t)\,dt \;-\; F(T^\star) \;=\; \frac{c_p}{\,c_f-c_p\,}$$
+
+> At the optimum, the **marginal risk** of continuing to operate exactly balances the **relative
+> saving** of intervening, $c_p/(c_f-c_p)$. It is an equation to be solved, not a hunch.
+
 ![**The optimum, in practice.** Projected cumulative maintenance cost under four intervention policies, for a new and an aging fleet. Intervening at the optimal point —instead of waiting for failure (reactive) or following a fixed calendar— lowers total cost over the fleet's life. *(Illustrative figures; calibrated per fleet.)*](../figures/cost_by_policy.png){width=100%}
 
 ---
