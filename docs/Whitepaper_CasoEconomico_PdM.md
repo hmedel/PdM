@@ -252,6 +252,24 @@ activo —que es lo que distingue al predictivo del preventivo de calendario fij
 
 ![**Intervenciones totales por política.** $T^\star$ y el CBM logran una seguridad similar (fallas correctivas 2,112 vs 1,869), pero $T^\star$ hace 8,197 reemplazos preventivos contra 3,806 del CBM: misma protección, mucho más sobre-mantenimiento. Es la diferencia que la curva de costo (Figura 4) traduce en ~20 % de ahorro del CBM sobre $T^\star$. *Simulación PhAIMaT.*](../figures/intervenciones_politicas.png){width=90%}
 
+### 8.1 El óptimo es por unidad: el manejo del conductor mueve $T^\star$
+
+$T^\star$ no es un número de catálogo: depende de **cómo se opera cada unidad**. El estilo de manejo
+—frenadas bruscas, revoluciones altas, ralentí, carga— es observable en la telemetría **OBD/CAN** y
+actúa como una **covariable** que acelera o frena el desgaste, desplazando la distribución de vida de
+**esa** unidad y, con ella, su intervalo óptimo. En el modelo de confiabilidad entra como un factor de
+escala sobre la vida característica: dos camiones idénticos en la misma ruta tienen $T^\star$ distintos
+si uno se maneja agresivo y el otro suave.
+
+El efecto no es marginal. Para las balatas —el componente más sensible al manejo— el óptimo se desplaza
+de **~380 a ~208 horas-motor** entre un conductor suave y uno agresivo (un factor cercano a 2). Una
+política de **intervalo fijo es ciega a esto**: sobre-mantiene al conductor suave y deja desprotegido al
+agresivo. El predictivo, al estimar $T^\star$ **por unidad** a partir de la señal observada, recupera el
+ahorro: en una unidad de manejo agresivo, programar a su $T^\star$ propio en vez de a uno promedio vale
+del orden de **~2,600 MXN por unidad-año** solo en este componente.
+
+![**El manejo mueve la vida y el costo por unidad.** Izquierda: la distribución de vida de las balatas se desplaza a la izquierda con el manejo agresivo (la pieza muere más joven). Centro: el intervalo óptimo $T^\star$ baja monótonamente con el índice de manejo. Derecha: el costo por unidad-año sube con el manejo; un $T^\star$ **consciente del manejo** (por unidad) queda por debajo de uno **ciego** (programado a un intervalo promedio). El índice de manejo se deriva de la telemetría OBD/CAN. *Simulación PhAIMaT.*](../figures/manejo_economia.png){width=100%}
+
 ---
 
 ## 9. Cumplimiento → seguro y contratos: el costo que no aparece en la factura del taller

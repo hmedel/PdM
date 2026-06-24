@@ -247,6 +247,23 @@ which is what distinguishes the predictive approach from fixed-calendar preventi
 
 ![**Total interventions by policy.** $T^\star$ and CBM achieve similar safety (corrective failures 2,112 vs 1,869), but $T^\star$ makes 8,197 preventive replacements against 3,806 for CBM: same protection, far more over-maintenance. It is the difference the cost curve (Figure 4) translates into ~20 % savings of CBM over $T^\star$. *PhAIMaT simulation.*](../figures/total_interventions_by_policy.png){width=90%}
 
+### 8.1 The optimum is per-unit: driver behavior moves $T^\star$
+
+$T^\star$ is not a catalog number: it depends on **how each unit is operated**. Driving style —harsh
+braking, high rpm, idling, load— is observable in **OBD/CAN** telemetry and acts as a **covariate** that
+speeds up or slows down wear, shifting **that** unit's life distribution and, with it, its optimal
+interval. In the reliability model it enters as a scale factor on the characteristic life: two identical
+trucks on the same route have different $T^\star$ if one is driven aggressively and the other gently.
+
+The effect is not marginal. For brake pads —the component most sensitive to driving— the optimum shifts
+from **~380 to ~208 engine-hours** between a gentle and an aggressive driver (close to a factor of 2). A
+**fixed-interval policy is blind to this**: it over-maintains the gentle driver and leaves the aggressive
+one under-protected. The predictive approach, estimating $T^\star$ **per unit** from the observed signal,
+recovers the saving: on an aggressively-driven unit, scheduling at its own $T^\star$ instead of an average
+one is worth on the order of **~2,600 MXN per unit-year** for this component alone.
+
+![**Driving moves per-unit life and cost.** Left: the brake-pad life distribution shifts left under aggressive driving (the part dies younger). Center: the optimal interval $T^\star$ falls monotonically with the driving index. Right: cost per unit-year rises with driving; a **driving-aware** $T^\star$ (per unit) stays below a **blind** one (scheduled at an average interval). The driving index is derived from OBD/CAN telemetry. *PhAIMaT simulation.*](../figures/driving_economics.png){width=100%}
+
 ---
 
 ## 9. Compliance → insurance and contracts: the cost that doesn't show on the shop invoice
