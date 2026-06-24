@@ -26,7 +26,7 @@ module DamageModels
 using Random
 
 export PhysComponent, COMPONENTS, mechanism_severity, damage_increment, trip_noise,
-       telemetry_state
+       telemetry_state, drive_sensitivity
 
 """
     PhysComponent
@@ -73,7 +73,8 @@ const COMPONENTS = PhysComponent[
     # 7. EGR válvula/cooler: alto costo escape; fatiga térmica + hollín. Precursor SPN 412 temp EGR.
     PhysComponent("egr",         1.8,  3500.0, 0.6,   700.0,  2800.0, true,
                   Set([:heavy_truck]),  7, 412,  0, 0.07, :soot),
-    # 8. Sistema de combustible (filtro/bomba/rail/inyector): β≈2.8 (inyector, marino). Precursor SPN 94.
+    # 8. Sistema de combustible (filtro/líneas/rail; inyector y bomba ahora separados, §13.16-17):
+    #    β≈2.8. Precursor SPN 94 (presión de riel). Ojo: no duplicar con fuel_injector/fuel_pump.
     PhysComponent("fuel_system", 2.8,  6000.0, 0.4,  1500.0,  6000.0, true,
                   Set([:heavy_truck]),  8,  94,  1, 0.06, :fatigue),
     # 9. Desgaste de motor (proxy análisis de aceite, TMC RP 318C): protege cojinetes/camisas. cf/cp alto.
@@ -91,6 +92,35 @@ const COMPONENTS = PhysComponent[
     #     Palmgren). ESTADÍSTICO: sin SPN estándar (requiere smart-hub) ⇒ sin precursor ⇒ sin CBM.
     PhysComponent("wheel_end",   1.3,  8000.0, 0.4,   600.0,  2400.0, true,
                   Set([:heavy_truck, :light_vehicle]), 12, 0, 0, 0.0, :fatigue),
+
+    # ── Extensión 2026-06-23 (input de experto en mantenimiento; pesado/aire-J1939 salvo nota; ──
+    #    β/η/costos [estimación], umbrales [reconfirmar]). Ver docs/Componentes_PdM_Extension.md §2.
+    # 13. Válvula repartidora de aire (relay/quick-release del freno de aire): SEGURIDAD (pérdida de
+    #     freno → c_accidente). β≈1.9 fatiga de asiento/diafragma. ESTADÍSTICO/inspección (sin SPN
+    #     dedicado; el desbalance de presión se ve en SPN 117 del sistema, no del componente).
+    PhysComponent("air_distribution_valve", 1.9, 5000.0, 0.5,   900.0,  9000.0, true,
+                  Set([:heavy_truck]), 13, 0, 0, 0.0, :brake),
+    # 14. Birlos (espárragos/tuercas de rueda): SEGURIDAD-crítico (separación de rueda → catastrófico
+    #     ⇒ cf muy alto). β≈1.6 fatiga por ciclos de torque. ESTADÍSTICO: sin precursor on-board
+    #     (inspección/torque). Ligero+pesado.
+    PhysComponent("wheel_stud",  1.6,  9000.0, 0.4,   300.0, 30000.0, true,
+                  Set([:heavy_truck, :light_vehicle]), 14, 0, 0, 0.0, :fatigue),
+    # 15. Rotochamber (cámara de freno de resorte/actuador): SEGURIDAD. β≈2.0. Precursor real = recorrido
+    #     del vástago (pushrod stroke) — medible pero sin SPN estándar ⇒ ESTADÍSTICO/inspección por ahora.
+    PhysComponent("brake_chamber", 2.0, 6000.0, 0.5,   700.0,  6000.0, true,
+                  Set([:heavy_truck]), 15, 0, 0, 0.0, :brake),
+    # 16. Inyectores: β≈2.8 (estudio inyector diésel). CBM: ligero vía fuel-trim/fuel_pressure OBD;
+    #     pesado vía SPN 651 (circuito de inyector). Separado del filtro/líneas (fuel_system).
+    PhysComponent("fuel_injector", 2.8, 7000.0, 0.4,  1500.0,  7000.0, true,
+                  Set([:heavy_truck, :light_vehicle]), 16, 651, 5, 0.05, :fatigue),
+    # 17. Bomba de combustible: β≈2.5. CBM vía presión de combustible (SPN 1075 / fuel_pressure_kpa OBD).
+    PhysComponent("fuel_pump",   2.5,  8000.0, 0.4,  1200.0,  6000.0, true,
+                  Set([:heavy_truck, :light_vehicle]), 17, 1075, 1, 0.05, :fatigue),
+    # 18. Diferencial (engranes/rodamientos del drivetrain): β≈2.2 fatiga de contacto (Lundberg-Palmgren).
+    #     cf alto (reconstrucción mayor). Precursor = análisis de aceite del diferencial (OFF-BOARD,
+    #     ver modalidad oil-sample) ⇒ sin SPN on-board. Pesado (y diferencial trasero de ligero).
+    PhysComponent("differential", 2.2, 14000.0, 0.45, 4000.0, 35000.0, true,
+                  Set([:heavy_truck, :light_vehicle]), 18, 0, 0, 0.0, :fatigue),
 ]
 
 """
@@ -118,13 +148,33 @@ function trip_noise(rng::AbstractRNG, mass_factor::Float64; sigma::Float64=0.18)
 end
 
 """
-    damage_increment(comp, z, trip, mass_factor, ξ) -> horas-efectivas de daño del viaje.
+    drive_sensitivity(mechanism) -> κ_drive (sensibilidad del componente al ESTILO DE MANEJO).
 
-Reloj de daño: ΔD = engine_h · exp(κ·z) · ξ. (La física fina —energía de descenso, hollín— ya está
-en `z` y en `ξ`; aquí se integra en horas-efectivas para que el umbral Weibull sea recuperable.)
+κ_drive de la covariable de manejo (AFT), por mecanismo. El manejo agresivo (frenadas bruscas, alto
+rpm/carga, ralentí) acelera más a unos componentes que a otros: frenos > combustible/fatiga > térmico
+> batería (mayormente ambiente). Valores **[estimación]**; verdad recuperable = γ_drive = −κ_drive.
+Centrado: el índice de manejo entra como (driving_index − 0.5), así 0.5 = neutral (sin desplazamiento).
 """
-function damage_increment(comp::PhysComponent, z::Float64, trip, mass_factor::Float64, ξ::Float64)
-    return trip.engine_h * exp(comp.kappa * z) * ξ
+function drive_sensitivity(mechanism::Symbol)
+    mechanism === :brake       && return 1.0   # estilo de frenado domina balata/aire/rotochamber
+    mechanism === :soot        && return 0.7   # ralentí/pare-y-siga, acelerón
+    mechanism === :fatigue     && return 0.6   # golpes/carga por manejo brusco (combustible, drivetrain)
+    mechanism === :thermal_scr && return 0.4
+    mechanism === :cooling     && return 0.4
+    mechanism === :heat_batt   && return 0.2   # batería: casi todo ambiente, poco manejo
+    return 0.5
+end
+
+"""
+    damage_increment(comp, z, trip, mass_factor, ξ; drive_term=0.0) -> horas-efectivas de daño del viaje.
+
+Reloj de daño: ΔD = engine_h · exp(κ·z + drive_term) · ξ. (La física fina —energía de descenso, hollín—
+ya está en `z` y en `ξ`; aquí se integra en horas-efectivas para que el umbral Weibull sea recuperable.)
+`drive_term` = κ_drive·(driving_index − 0.5): el efecto del estilo de manejo (default 0 ⇒ sin efecto).
+"""
+function damage_increment(comp::PhysComponent, z::Float64, trip, mass_factor::Float64, ξ::Float64;
+                          drive_term::Float64=0.0)
+    return trip.engine_h * exp(comp.kappa * z + drive_term) * ξ
 end
 
 """

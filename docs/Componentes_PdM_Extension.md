@@ -1,10 +1,11 @@
-# Extensión de componentes PdM — de 4 a 12
+# Extensión de componentes PdM — de 4 a 18
 
-**Qué:** se extendió el estimador/simulador de 4 componentes (brake_pad, dpf, scr, battery) a **12**,
-añadiendo los más importantes para mantenimiento predictivo/preventivo en flota Clase 8 diésel.
-Basado en investigación con fuentes (TMC/FleetNet, CVSA, ATRI, Decisiv, estudios Weibull).
+**Qué:** se extendió el estimador/simulador de 4 componentes (brake_pad, dpf, scr, battery) a **12**
+(v1.0) y luego a **18** (v1.1, input de experto en mantenimiento), añadiendo los más importantes para
+mantenimiento predictivo/preventivo en flota Clase 8 diésel. Basado en investigación con fuentes
+(TMC/FleetNet, CVSA, ATRI, Decisiv, estudios Weibull) + práctica de taller.
 
-Versión 1.0 — 2026-06-18.
+Versión 1.1 — 2026-06-23 (v1.0 — 2026-06-18).
 
 > **Nivel de confianza de los números:** β/η/costos son **[estimación]** salvo donde se cita estudio;
 > los umbrales de precursor (SPN) provienen de *snippets* de búsqueda y están marcados **[reconfirmar]**
@@ -38,6 +39,42 @@ montaña/Appalachia (subidas sostenidas) y desierto (calor ambiente), bajo en ll
 **tire y wheel_end** son ESTADÍSTICOS por diseño: su mejor señal (profundidad de banda, salud de
 rodamiento) **no está en J1939 estándar**, así que no tienen entrada en `Precursors` ⇒ el estimador
 decide por intervalo óptimo T*/IFR (no CBM). Requerirían TPMS/smart-hubs (ConMet/STEMCO) para CBM.
+
+---
+
+## §2 — Componentes añadidos en v1.1 (6, input de experto, 2026-06-23)
+
+Práctica de taller: faltaban modos de falla de alto impacto, sobre todo de **freno de aire** (seguridad →
+alimenta `c_accidente`), **sujeción de rueda** y **drivetrain/combustible granular**. Todos en
+`COMPONENTS` (mode_id 13–18); el simulador, la economía y el estimador los recogen automáticamente.
+
+| Componente | β | η_ref (h-motor) | cp / cf (MXN) | Mecanismo→ruta | Precursor | CBM |
+|---|---|---|---|---|---|---|
+| **air_distribution_valve** (válvula repartidora de aire) | 1.9 | 5000 | 900 / 9000 | `:brake` | desbalance de presión (SPN 117 del sistema, no del componente) | **no (inspección)** |
+| **wheel_stud** (birlos) | 1.6 | 9000 | 300 / 30000 | `:fatigue` | sin on-board (torque/inspección) | **no (estadístico)** |
+| **brake_chamber** (rotochamber) | 2.0 | 6000 | 700 / 6000 | `:brake` | recorrido de vástago (sin SPN estándar) | **no (inspección)** |
+| **fuel_injector** (inyectores) | 2.8¹ | 7000 | 1500 / 7000 | `:fatigue` | fuel-trim/presión (OBD ligero) · SPN 651 (J1939) | sí |
+| **fuel_pump** (bomba de combustible) | 2.5 | 8000 | 1200 / 6000 | `:fatigue` | presión de combustible (`fuel_pressure_kpa` / SPN 1075) | sí |
+| **differential** (diferencial) | 2.2¹ | 14000 | 4000 / 35000 | `:fatigue` | **análisis de aceite** (off-board) → sin SPN on-board | sí (lab) |
+
+¹ β con respaldo: inyector≈2.78 (estudio diésel marino); diferencial fatiga de contacto ≈2.0–2.5
+(Lundberg-Palmgren para engrane/rodamiento). El resto **[estimación]**; umbrales **[reconfirmar]**.
+
+**Seguridad (c_accidente):** `air_distribution_valve`, `brake_chamber` (freno de aire) y `wheel_stud`
+(separación de rueda → wheel-off catastrófico) son modos **seguridad-críticos** — por eso su `cf` es
+desproporcionado al costo de pieza (birlos: pieza barata, falla carísima). Refuerzan el término de
+accidente del caso económico.
+
+**Separación combustible:** `fuel_system` se re-acota a **filtro/líneas/rail**; `fuel_injector` y
+`fuel_pump` se modelan aparte (vidas y costos distintos; CBM propio). No deben **duplicarse** al sumar.
+
+**Inyectores/bomba en flota LIGERA:** su precursor on-board ya existe en `obd_data` (fuel trims
+`short/long_term_fuel_trim_b1_pct`, `fuel_pressure_kpa`, `fuel_rate_lph`, MIL/DTC de misfire) — son los
+únicos del set v1.1 con CBM real en el auto ligero de hoy. El resto es pesado/J1939 o estadístico.
+
+**Análisis de aceite (diferencial/motor):** es una **modalidad off-board** (muestras de lab: metales,
+viscosidad, hollín, TBN), no un SPN — ver el contrato de datos oil-sample (diseño aparte). Refina
+`differential` y `oil`.
 
 ---
 

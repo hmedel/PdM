@@ -86,6 +86,7 @@ struct VehicleRec
     onboarded_at::Date
     route_severity::Float64     # severidad compuesta del corredor (emergente)
     hours_per_day::Float64      # horas-motor/día medias (emergente)
+    driving_index::Float64      # índice de estilo de manejo del conductor (OBD/CAN-derivado, 0..1)
 end
 
 struct PositionRec
@@ -153,6 +154,7 @@ struct SurvivalRecord
     brand::String
     model::String
     route_severity::Float64     # z (covariable física específica del mecanismo del componente)
+    driving_index::Float64      # covariable de ESTILO DE MANEJO (OBD/CAN-derivada, 0=suave..1=agresivo)
     entry_age::Float64          # horas-motor (truncamiento por la izquierda)
     exit_age::Float64           # horas-motor (evento o censura) — EMERGENTE de la física
     status::Int
@@ -173,12 +175,14 @@ struct SimConfig
     f_stagger::Float64
     snapshot_every_days::Int
     inspect_every_days::Int
+    drive_spread::Float64       # ancho de heterogeneidad de manejo (0 = sin efecto; 1 = índice en [0,1])
 end
 
 SimConfig(; n_vehicles=200, horizon_days=730, start_date=Date(2024, 6, 17), seed=20240617,
-            f_trunc=0.30, f_stagger=0.25, snapshot_every_days=14, inspect_every_days=90) =
+            f_trunc=0.30, f_stagger=0.25, snapshot_every_days=14, inspect_every_days=90,
+            drive_spread=0.0) =
     SimConfig(n_vehicles, horizon_days, start_date, seed, f_trunc, f_stagger,
-              snapshot_every_days, inspect_every_days)
+              snapshot_every_days, inspect_every_days, drive_spread)
 
 struct SimOutput
     config::SimConfig
@@ -245,6 +249,17 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
         vid   = string("VEH-", lpad(k, 4, '0'))
         xveh  = RouteNetwork.route_severity_index(arch)
 
+        # Estilo de manejo del conductor (trait por unidad) + índice OBSERVABLE (OBD/CAN-derivado, con
+        # ruido de agregación). Guarda de RNG: con drive_spread=0 NO se consume aleatorio ⇒ stream y
+        # resultados idénticos al modelo sin manejo (retrocompat exacta). `dterm` = κ_drive·(index−0.5).
+        if cfg.drive_spread > 0
+            drive_style   = clamp(0.5 + cfg.drive_spread * (rand(rng) - 0.5), 0.0, 1.0)
+            driving_index = clamp(drive_style + 0.03 * randn(rng), 0.0, 1.0)
+        else
+            drive_style = 0.5; driving_index = 0.5
+        end
+        dterm(c) = DamageModels.drive_sensitivity(c.mechanism) * (driving_index - 0.5)
+
         onboard = (rand(rng) < cfg.f_stagger) ?
                   cfg.start_date + Day(rand(rng, 0:Int(round(0.3 * cfg.horizon_days)))) :
                   cfg.start_date
@@ -278,7 +293,8 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
                 cum_km[d + 1] = cum_km[d] + trip.dist_km
                 for (name, z) in zc
                     c = comps[findfirst(c -> c.name == name, comps)]
-                    Dcum[name][d + 1] = Dcum[name][d] + DamageModels.damage_increment(c, z, trip, mf, ξ)
+                    Dcum[name][d + 1] = Dcum[name][d] +
+                        DamageModels.damage_increment(c, z, trip, mf, ξ; drive_term=dterm(c))
                 end
                 be_cum[d + 1] = be_cum[d] + trip.descent_energy_kjpt * mf
                 rf_cum[d + 1] = rf_cum[d] + trip.mean_roughness_iri * mf * trip.dist_km * 1e-3
@@ -293,7 +309,7 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
         mean_hpd = total_h / max(ndays, 1)
         model = string(ttype.name, "/", brand)
         push!(vehicles, VehicleRec(vid, ttype.class, brand, model, myear, gvwr, ttype.protocol,
-              onboard, round(xveh, digits=4), round(mean_hpd, digits=3)))
+              onboard, round(xveh, digits=4), round(mean_hpd, digits=3), round(driving_index, digits=4)))
 
         # --- snapshots periódicos (usage_snapshot) con proxies físicos reales (ordinales) ---
         for d in 0:cfg.snapshot_every_days:ndays
@@ -329,7 +345,7 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
             ttype.class in c.classes || continue
             z = zc[c.name]
             ηref_g = eta0[(ttype.class, brand, c.name)]
-            η_i = ηref_g * exp(-c.kappa * z)             # vida característica en horas-motor
+            η_i = ηref_g * exp(-c.kappa * z - dterm(c))  # vida característica (ruta + manejo) en horas-motor
             locs = c.name == "brake_pad" ? ttype.brake_positions :
                    c.name == "dpf" ? ["exhaust"] :
                    c.name == "scr" ? ["aftertreatment"] : ["chassis"]
@@ -340,7 +356,7 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
 
                 preexist = rand(rng) < cfg.f_trunc
                 a0_h = preexist ? 0.6 * η_i * rand(rng) : 0.0       # edad preexistente (horas-motor)
-                a0_D = a0_h * exp(c.kappa * z)                       # ≈ daño preexistente (efectivo)
+                a0_D = a0_h * exp(c.kappa * z + dterm(c))            # ≈ daño preexistente (efectivo)
                 install_day = 0
                 D0 = Dcum[c.name][1]
                 cumh0 = cum_h[1]
@@ -369,7 +385,7 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
                     if fday === nothing
                         obs_h = a0_h + (cum_h[end] - cumh0)
                         push!(survival, SurvivalRecord(iid, c.name, ttype.class, brand, model, z,
-                              entry_age, obs_h, 0, !install_known))
+                              driving_index, entry_age, obs_h, 0, !install_known))
                         if c.mode_id == 1
                             last_good = emit_inspections!(events, nextevt, iid, onboard, ndays,
                                             cum_h, cum_km, cfg.inspect_every_days, sim_end)
@@ -407,7 +423,7 @@ function simulate_fleet(cfg::SimConfig=SimConfig())
                           c.dtc_spn != 0 ? :auto_dtc : :dvir, c.dtc_spn, c.dtc_fmi))
 
                     push!(survival, SurvivalRecord(iid, c.name, ttype.class, brand, model, z,
-                          entry_age, exit_h, c.mode_id, !install_known))
+                          driving_index, entry_age, exit_h, c.mode_id, !install_known))
 
                     instances[iid] = InstanceRec(iid, pid, instances[iid].part_number,
                           instances[iid].supplier, instances[iid].install_time,

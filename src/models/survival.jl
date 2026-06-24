@@ -33,7 +33,8 @@ struct GroupedFit
     beta::Float64
     beta_lo::Float64
     beta_hi::Float64
-    gamma::Float64
+    gamma::Float64                             # pendiente AFT de la covariable de RUTA (route_severity)
+    gamma_drive::Float64                        # pendiente AFT de la covariable de MANEJO (0 si no varía)
     eta0::Dict{Tuple{Symbol,String},Float64}   # (clase, marca) -> vida característica base
     groups::Vector{Tuple{Symbol,String}}
     n::Int
@@ -47,6 +48,19 @@ function _nll_grouped(theta, gi, x, t, d, a, G)
     ll = 0.0
     @inbounds for i in eachindex(t)
         eta = exp(theta[2 + gi[i]]) * exp(g * x[i])
+        zt = (t[i] / eta)^b
+        za = a[i] > 0 ? (a[i] / eta)^b : 0.0
+        ll += d[i] * (log(b) - b * log(eta) + (b - 1) * log(t[i])) - zt + za
+    end
+    return -ll
+end
+
+# --- verosimilitud agrupada con DOS covariables (ruta + manejo): theta = [logβ, γ1, γ2, logη0_1..G] ---
+function _nll_grouped2(theta, gi, x1, x2, t, d, a, G)
+    b = exp(theta[1]); g1 = theta[2]; g2 = theta[3]
+    ll = 0.0
+    @inbounds for i in eachindex(t)
+        eta = exp(theta[3 + gi[i]]) * exp(g1 * x1[i] + g2 * x2[i])
         zt = (t[i] / eta)^b
         za = a[i] > 0 ? (a[i] / eta)^b : 0.0
         ll += d[i] * (log(b) - b * log(eta) + (b - 1) * log(t[i])) - zt + za
@@ -88,6 +102,8 @@ function fit_grouped(records; nboot::Int=40, rng::AbstractRNG=MersenneTwister(1)
     classes = [r.class for r in records]
     brands  = [r.brand for r in records]
     x = Float64[r.route_severity for r in records]
+    # 2ª covariable opcional (estilo de manejo, OBD/CAN-derivado). Ausente en contratos sin el campo.
+    x2 = Float64[hasproperty(r, :driving_index) ? r.driving_index : 0.0 for r in records]
     t = Float64[r.exit_age for r in records]
     d = Float64[r.status > 0 ? 1.0 : 0.0 for r in records]
     a = Float64[r.entry_age for r in records]
@@ -99,28 +115,47 @@ function fit_grouped(records; nboot::Int=40, rng::AbstractRNG=MersenneTwister(1)
         t[i] = max(t[i], 1e-6)
     end
 
-    x0 = vcat([log(2.0), 0.0], fill(log(mean(t)), G))
-    obj(th) = _nll_grouped(th, gi, x, t, d, a, G)
-    # NelderMead (sin gradiente): la verosimilitud es suave, pero `f_tol` —no `g_tol`— es el
-    # criterio activo. Para producción con muchos grupos conviene LBFGS + gradiente analítico.
-    res = optimize(obj, x0, NelderMead(), Optim.Options(f_reltol=1e-10, iterations=60_000))
-    th = Optim.minimizer(res)
-    b = exp(th[1]); g = th[2]
-    etas = Dict(groups[i] => exp(th[2 + i]) for i in 1:G)
-
-    # IC bootstrap de β. Se arranca cada réplica desde `x0` (no desde el óptimo full-sample) para
-    # NO subestimar la varianza de β — y `beta_lo` gobierna la decisión IFR. Producción: nboot≥500.
+    # Guarda de varianza: solo se ajusta la 2ª covariable si el manejo REALMENTE varía. Si no, el
+    # camino de 1 covariable es byte-idéntico al original (γ_drive=0) ⇒ cero regresión.
+    use2 = length(x2) > 1 && var(x2) > 1e-6
     n = length(t); bs = Float64[]
-    for _ in 1:nboot
-        idx = rand(rng, 1:n, n)
-        objb(th) = _nll_grouped(th, gi[idx], x[idx], t[idx], d[idx], a[idx], G)
-        rb = optimize(objb, x0, NelderMead(), Optim.Options(iterations=40_000))
-        push!(bs, exp(Optim.minimizer(rb)[1]))
+
+    if use2
+        x0 = vcat([log(2.0), 0.0, 0.0], fill(log(mean(t)), G))
+        obj = th -> _nll_grouped2(th, gi, x, x2, t, d, a, G)
+        res = optimize(obj, x0, NelderMead(), Optim.Options(f_reltol=1e-10, iterations=60_000))
+        th = Optim.minimizer(res)
+        b = exp(th[1]); g = th[2]; g2 = th[3]
+        etas = Dict(groups[i] => exp(th[3 + i]) for i in 1:G)
+        for _ in 1:nboot
+            idx = rand(rng, 1:n, n)
+            objb = th -> _nll_grouped2(th, gi[idx], x[idx], x2[idx], t[idx], d[idx], a[idx], G)
+            rb = optimize(objb, x0, NelderMead(), Optim.Options(iterations=40_000))
+            push!(bs, exp(Optim.minimizer(rb)[1]))
+        end
+        converged = Optim.converged(res)
+    else
+        x0 = vcat([log(2.0), 0.0], fill(log(mean(t)), G))
+        # NelderMead (sin gradiente): la verosimilitud es suave, pero `f_tol` —no `g_tol`— es el
+        # criterio activo. Para producción con muchos grupos conviene LBFGS + gradiente analítico.
+        obj = th -> _nll_grouped(th, gi, x, t, d, a, G)
+        res = optimize(obj, x0, NelderMead(), Optim.Options(f_reltol=1e-10, iterations=60_000))
+        th = Optim.minimizer(res)
+        b = exp(th[1]); g = th[2]; g2 = 0.0
+        etas = Dict(groups[i] => exp(th[2 + i]) for i in 1:G)
+        # IC bootstrap de β. Se arranca cada réplica desde `x0` (no desde el óptimo full-sample) para
+        # NO subestimar la varianza de β — y `beta_lo` gobierna la decisión IFR. Producción: nboot≥500.
+        for _ in 1:nboot
+            idx = rand(rng, 1:n, n)
+            objb = th -> _nll_grouped(th, gi[idx], x[idx], t[idx], d[idx], a[idx], G)
+            rb = optimize(objb, x0, NelderMead(), Optim.Options(iterations=40_000))
+            push!(bs, exp(Optim.minimizer(rb)[1]))
+        end
+        converged = Optim.converged(res)
     end
     blo, bhi = quantile(bs, 0.025), quantile(bs, 0.975)
 
-    return GroupedFit(comp, b, blo, bhi, g, etas, groups, n, Int(sum(d)),
-                      Optim.converged(res))
+    return GroupedFit(comp, b, blo, bhi, g, g2, etas, groups, n, Int(sum(d)), converged)
 end
 
 """
