@@ -40,6 +40,7 @@ include("decision/optimal_interval.jl"); using .Decision
 include("decision/policy.jl");           using .Policy
 include("decision/economics.jl");        using .Economics
 include("io/wsa_writer.jl");             using .WSAWriter
+include("io/oil_sample.jl");             using .OilSample        # contrato off-board de análisis de aceite
 include("telemetry/TelemetrySim.jl");    using .TelemetrySim      # → RouteNetwork, TruckAgent, SignalRegistry, Powertrain, TireModel, Diagnostics
 include("cbm/rules.jl");                 using .CBM
 include("analytics/analytics.jl");       using .Analytics   # → Survival, RUL, Decision, Precursors, Economics, …
@@ -47,7 +48,7 @@ include("analytics/analytics.jl");       using .Analytics   # → Survival, RUL,
 # --- Handles de submódulos re-exportados (acceso como MaintenanceSim.X o `using MaintenanceSim`) ---
 export J1939, RouteNetwork, TruckAgent, DamageModels, SignalRegistry, Powertrain, TireModel,
        Diagnostics, Precursors, FleetSimulator, LifeProcess, Survival, RUL, Decision, Policy,
-       Economics, WSAWriter, TelemetrySim, CBM, Analytics
+       Economics, WSAWriter, OilSample, TelemetrySim, CBM, Analytics
 
 # --- API pública de alto nivel re-exportada por conveniencia --------------------------------------
 export simulate_fleet, generate_life_processes, fit_grouped, run_economics
