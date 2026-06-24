@@ -17,16 +17,29 @@ export run_batch, julia_main
 "Ejecuta SQL y devuelve filas como Vector{NamedTuple} (lo que consume el adaptador puro)."
 fetchrows(conn, sql; params=String[]) = Tables.rowtable(LibPQ.execute(conn, sql, params))
 
-"Tenants con vehículos (para el barrido por RLS)."
-list_tenants(conn) = [r.tenant_id for r in fetchrows(conn, "SELECT DISTINCT tenant_id FROM vehicles")]
+"""
+Tenants con vehículos (para el barrido). `vehicles` tiene RLS en tracker_prod, así que con
+contexto vacío y sin privilegio el SELECT devolvería 0 filas. Elevamos a `super_admin` SOLO para
+el descubrimiento y lo soltamos enseguida (idéntico mecanismo a Tracker; ver init-db.sql). Tras
+esto el lazo corre con user_role vacío ⇒ scope estricto por tenant.
+"""
+function list_tenants(conn)
+    LibPQ.execute(conn, "SELECT set_config('app.user_role', 'super_admin', false)")
+    ts = [r.tenant_id for r in fetchrows(conn, "SELECT DISTINCT tenant_id FROM vehicles")]
+    LibPQ.execute(conn, "SELECT set_config('app.user_role', '', false)")   # soltar privilegio
+    return ts
+end
 
+# Filtro EXPLÍCITO por tenant_id: maintenance_records/obd_data/vehicle_mileage NO tienen RLS en
+# tracker_prod, así que fijar app.current_tenant no acota el historial. El WHERE explícito acota
+# ambas vistas por igual, independientemente de qué tablas tengan RLS (verificado 2026-06-23).
 const SQL_HISTORY = """
     SELECT component_type, class, brand, route_severity, entry_age_km, exit_age_km, status
-    FROM pdm_survival_record"""
+    FROM pdm_survival_record WHERE tenant_id = \$1"""
 const SQL_LIVE = """
     SELECT tenant_id, vehicle_id, component_type, class, brand, route_severity,
            current_age_km, precursor_reading
-    FROM pdm_live_unit"""
+    FROM pdm_live_unit WHERE tenant_id = \$1"""
 const SQL_CATALOG = "SELECT component_type, cp_mxn, cf_mxn FROM pdm_component_catalog WHERE enabled"
 
 "Inserta filas de predicción en pdm_prediction (nothing→NULL). Devuelve cuántas escribió."
@@ -49,8 +62,14 @@ end
 """
     run_batch(; url, nboot=200, seed=1) -> (run_id, total_predicciones)
 
-Corrida completa sobre todos los tenants, por tenant fijando `app.current_tenant` (respeta la RLS
-de Tracker sin rol bypass). `url` por defecto = ENV["TRACKER_DB_URL"].
+Corrida completa sobre todos los tenants. Descubre tenants elevando a `super_admin` un instante
+(vehicles tiene RLS), luego acota cada tenant con `WHERE tenant_id = $1` EXPLÍCITO en las vistas
+(robusto: maintenance_records/obd_data/vehicle_mileage NO tienen RLS) y fija `app.current_tenant`
+para el INSERT en pdm_prediction (esa sí tiene RLS). `url` por defecto = ENV["TRACKER_DB_URL"].
+
+Rol de BD requerido: SELECT en vehicles, maintenance_records, vehicle_mileage, obd_data y las
+vistas/catálogo pdm_*; INSERT en pdm_prediction. Funciona tanto con rol BYPASSRLS/owner como con
+rol normal (el escape a super_admin cubre el descubrimiento; el filtro explícito cubre el resto).
 """
 function run_batch(; url::AbstractString = get(ENV, "TRACKER_DB_URL", ""),
                      nboot::Int = 200, seed::Int = 1)
@@ -62,10 +81,11 @@ function run_batch(; url::AbstractString = get(ENV, "TRACKER_DB_URL", ""),
         costs = to_costs(fetchrows(conn, SQL_CATALOG))
         isempty(costs) && @warn "Catálogo sin costos: no se ajustará ningún componente"
         for t in list_tenants(conn)
+            # fija el contexto para que el INSERT en pdm_prediction (RLS) pase su WITH CHECK
             LibPQ.execute(conn, "SELECT set_config('app.current_tenant', \$1, false)", String[string(t)])
-            live = fetchrows(conn, SQL_LIVE)
+            live = fetchrows(conn, SQL_LIVE; params=String[string(t)])
             isempty(live) && continue
-            hist = fetchrows(conn, SQL_HISTORY)
+            hist = fetchrows(conn, SQL_HISTORY; params=String[string(t)])
             preds = run_estimates(hist, live, costs; run_id=run_id, nboot=nboot, rng=MersenneTwister(seed))
             n = write_predictions(conn, preds)
             total += n

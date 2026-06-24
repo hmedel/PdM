@@ -7,14 +7,18 @@
 -- estimador (ServiceRecord / LiveUnit), y AÑADE solo: un catálogo, una tabla de
 -- salida y (recomendado) una columna `is_corrective`. Diseño: docs/Integracion_BD_Tracker.md.
 --
--- ⚠ SUPUESTOS A CONFIRMAR contra el DDL real de tracker_prod (no inspeccionable desde aquí):
---   A1. Columna de tiempo de la hypertable `obd_data` = `time`  (¿`ts`/`recorded_at`?).
+-- ✅ SUPUESTOS CONFIRMADOS contra el DDL real de tracker_prod (modelos SQLAlchemy
+--    en ~/PhAIMaT/Tracker-v2/vps-central/api-core/app/models, verificado 2026-06-23):
+--   A1. Columna de tiempo de la hypertable `obd_data` = `timestamp` (NO `time`). CORREGIDO abajo.
 --   A2. `maintenance_records(vehicle_id, tenant_id, maintenance_type, service_date,
---        odometer_km, engine_hours, ...)`.
---   A3. `vehicle_mileage(vehicle_id, tenant_id, odometer_km, engine_hours, last_updated)`.
---   A4. `vehicles(id, tenant_id, make_model, year, status, ...)`.
---   A5. RLS por `current_setting('app.current_tenant')::uuid` (igual que el resto de Tracker).
--- Ajustar los identificadores marcados con  -- [A#]  si el DDL real difiere.
+--        odometer_km, engine_hours, ...)`  — exacto. ✓
+--   A3. `vehicle_mileage(vehicle_id, odometer_km, engine_hours, last_updated)` — ✓.
+--        Matiz: NO tiene `tenant_id` (vehicle_mileage es 1 fila/vehículo); este SQL no lo usa.
+--   A4. `vehicles(id, tenant_id, make_model, year, status, ...)` — ✓. Novedad (Epic 12): ya
+--        existen `vehicle_category`/`sct_classification` → en el futuro sustituir el 'light' fijo.
+--   A5. RLS por `current_setting('app.current_tenant', true)` comparando como TEXT, con bypass
+--        `super_admin`, igual que el resto de Tracker (init-db.sql). NO castear a ::uuid (revienta
+--        con contexto vacío ''). CORREGIDO abajo.
 -- ============================================================================
 
 BEGIN;
@@ -63,6 +67,22 @@ VALUES
     ('tire_rotation',  'tire',         NULL,                    NULL,   false, true,  1000,  6000),
     ('transmission_fluid', 'transmission', NULL,                NULL,   false, true,  3000, 40000)
     -- brake_fluid, general_inspection = tareas, no componentes de falla → no se siembran.
+ON CONFLICT (maintenance_type) DO NOTHING;
+
+-- Seed PESADO/J1939 — extensión v1.1 (input de experto 2026-06-23; ver docs/Componentes_PdM_Extension.md §2).
+-- enabled=false e INERTE: la flota viva es ligera OBD-II; estos modos son de camión pesado (freno de
+-- aire, drivetrain) y se activan al onboardear J1939 (confirmar maintenance_type real y SPN entonces).
+-- Nota: fuel_injectors/fuel_pump TAMBIÉN aplican a ligero con CBM vía OBD (fuel-trim/fuel_pressure);
+-- para activarlos en ligero hay que extender el CASE de pdm_live_unit y una fuente de precursor/DTC.
+INSERT INTO pdm_component_catalog
+    (maintenance_type, component_type, vehicle_class, precursor_column, alarm_direction, has_cbm, enabled, cp_mxn, cf_mxn)
+VALUES
+    ('air_relay_valve',   'air_distribution_valve', 'heavy', NULL,              NULL,  false, false,  900,  9000),
+    ('wheel_studs',       'wheel_stud',             'heavy', NULL,              NULL,  false, false,  300, 30000),
+    ('brake_chamber',     'brake_chamber',          'heavy', NULL,              NULL,  false, false,  700,  6000),
+    ('fuel_injectors',    'fuel_injector',          'heavy', 'fuel_pressure_kpa','low', true,  false, 1500,  7000),
+    ('fuel_pump',         'fuel_pump',              'heavy', 'fuel_pressure_kpa','low', true,  false, 1200,  6000),
+    ('differential_service','differential',         'heavy', NULL,              NULL,  false, false, 4000, 35000)
 ON CONFLICT (maintenance_type) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
@@ -149,7 +169,7 @@ last_obd AS (   -- última telemetría por vehículo (columnas de precursor)
     SELECT DISTINCT ON (vehicle_id)
            vehicle_id, control_module_voltage, coolant_temp_c, fuel_pressure_kpa
     FROM obd_data
-    ORDER BY vehicle_id, time DESC                                -- [A1] columna de tiempo
+    ORDER BY vehicle_id, timestamp DESC                           -- [A1] columna de tiempo (confirmada: `timestamp`)
 )
 SELECT
     v.tenant_id, v.id AS vehicle_id, c.component_type,
@@ -170,12 +190,18 @@ LEFT JOIN last_obd lo       ON lo.vehicle_id = v.id
 WHERE c.enabled AND c.vehicle_class = 'light';
 
 -- ----------------------------------------------------------------------------
--- 5. Row-Level Security por tenant (consistente con Tracker). [A5]
+-- 5. Row-Level Security por tenant. [A5] Idioma idéntico al resto de Tracker
+--    (init-db.sql): comparar tenant_id::TEXT contra el setting (NO ::uuid, que revienta con
+--    contexto vacío '') y permitir el bypass de super_admin. FOR ALL ⇒ el USING vale también
+--    como WITH CHECK del INSERT (el batch fija app.current_tenant y escribe filas de ese tenant).
 -- ----------------------------------------------------------------------------
 ALTER TABLE pdm_prediction ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS pdm_prediction_tenant ON pdm_prediction;
 CREATE POLICY pdm_prediction_tenant ON pdm_prediction
-    USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+    FOR ALL USING (
+        tenant_id::TEXT = current_setting('app.current_tenant', true)
+        OR current_setting('app.user_role', true) = 'super_admin'
+    );
 
 ALTER TABLE pdm_component_catalog ENABLE ROW LEVEL SECURITY;       -- catálogo global (sin tenant): lectura libre
 DROP POLICY IF EXISTS pdm_catalog_read ON pdm_component_catalog;
